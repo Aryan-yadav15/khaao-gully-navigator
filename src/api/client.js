@@ -310,6 +310,60 @@ export const getAssignedOrders = async (status = null) => {
   }
 };
 
+// ==================== DRIVER STATS ====================
+
+/**
+ * Get driver statistics (earnings, deliveries, distance)
+ * Returns today, week, and month stats
+ */
+export const getDriverStats = async () => {
+  try {
+    const response = await apiClient.get('/drivers/stats');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching driver stats:', error);
+    return {
+      today: { earnings: 0, deliveries: 0, distance: 0 },
+      week: { earnings: 0, deliveries: 0, distance: 0 },
+      month: { earnings: 0, deliveries: 0, distance: 0 },
+      total_completed: 0,
+      total_cancelled: 0,
+      rating: 0
+    };
+  }
+};
+
+/**
+ * Toggle driver online/offline status
+ */
+export const toggleOnlineStatus = async (isOnline) => {
+  try {
+    const response = await apiClient.post('/drivers/toggle-online', null, {
+      params: { is_online: isOnline }
+    });
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error('Error toggling online status:', error);
+    return { 
+      success: false, 
+      message: error.response?.data?.detail || 'Failed to update status' 
+    };
+  }
+};
+
+/**
+ * Get driver profile
+ */
+export const getDriverProfile = async () => {
+  try {
+    const response = await apiClient.get('/drivers/profile');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching driver profile:', error);
+    return null;
+  }
+};
+
 // Export apiClient as both named and default
 export { apiClient };
 export default apiClient;

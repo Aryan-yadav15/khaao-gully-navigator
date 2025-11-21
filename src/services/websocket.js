@@ -226,11 +226,17 @@ class WebSocketService {
       return false;
     }
 
+    // Map frontend location object to backend expectation
+    // Backend expects: lat, lng, status, order_id
     const payload = {
       type: 'location_update',
       data: {
-        latitude: locationData.latitude,
-        longitude: locationData.longitude,
+        lat: locationData.lat || locationData.latitude,
+        lng: locationData.lng || locationData.longitude,
+        status: locationData.status || 'ONLINE',
+        order_id: locationData.order_id || null,
+        
+        // Extra metadata (optional but good for debugging)
         accuracy: locationData.accuracy || 0,
         heading: locationData.heading || 0,
         speed: locationData.speed || 0,
@@ -241,7 +247,10 @@ class WebSocketService {
 
     try {
       this.ws.send(JSON.stringify(payload));
-      console.log('📍 Location sent:', payload.data.latitude, payload.data.longitude);
+      // Reduced logging - only log occasionally
+      if (Math.random() < 0.2) { // 20% of the time
+        console.log('📍 Location sent:', payload.data.lat, payload.data.lng);
+      }
       return true;
     } catch (error) {
       console.error('Error sending location:', error);

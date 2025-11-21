@@ -9,15 +9,28 @@ import {
   ActivityIndicator,
   TextInput,
   Modal,
-  Linking
+  Linking,
+  StatusBar
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { 
   apiClient, 
-  updateOrderStatus, 
-  verifyOTP, 
   submitOrderEarnings 
 } from '../api/client';
 import { openGoogleMaps } from '../utils/navigation';
+import OrderProgressBar from '../components/OrderProgressBar';
+import LocationTracker from '../services/LocationTracker';
+
+// Theme Constants matching HomeScreen
+const THEME = {
+  dark: '#1A1A1A',
+  light: '#FFFFFF',
+  accent: '#D4E157', // Lime Green
+  grey: '#F5F5F5',
+  textGrey: '#888888',
+  danger: '#FF5252',
+  primary: '#000000'
+};
 
 export default function OrderDetailScreen({ route, navigation }) {
   const { orderId } = route.params;
@@ -33,15 +46,15 @@ export default function OrderDetailScreen({ route, navigation }) {
 
   const fetchOrderDetails = async () => {
     try {
-      console.log(`📡 Fetching order details for Order #${orderId}...`);
       const response = await apiClient.get(`/driver/orders/${orderId}`);
-      console.log('✅ Order details response:', response.status);
-      console.log('📦 Order data:', JSON.stringify(response.data, null, 2));
       setOrder(response.data);
+      
+      // Update LocationTracker with current order
+      if (['ACCEPTED', 'PICKED_UP', 'IN_TRANSIT'].includes(response.data.status)) {
+        LocationTracker.setCurrentOrder(orderId);
+        console.log(`📍 Order ${orderId} set in LocationTracker (status: ${response.data.status})`);
+      }
     } catch (error) {
-      console.error('❌ Failed to fetch order details:', error);
-      console.error('Error response:', error.response?.status, error.response?.data);
-      console.error('Error message:', error.message);
       Alert.alert('Error', `Failed to load order details: ${error.response?.data?.detail || error.message}`);
       navigation.goBack();
     } finally {
@@ -52,12 +65,9 @@ export default function OrderDetailScreen({ route, navigation }) {
   const handleAcceptOrder = async () => {
     setActionLoading(true);
     try {
-      await apiClient.post(`/driver/orders/${orderId}/accept`, {
-        accepted: true
-      });
+      await apiClient.post(`/driver/orders/${orderId}/accept`, { accepted: true });
       fetchOrderDetails();
     } catch (error) {
-      console.error('Accept order error:', error.response?.data);
       Alert.alert('Error', error.response?.data?.detail || 'Failed to accept order');
     } finally {
       setActionLoading(false);
@@ -67,12 +77,9 @@ export default function OrderDetailScreen({ route, navigation }) {
   const handlePickupOrder = async () => {
     setActionLoading(true);
     try {
-      await apiClient.post(`/driver/orders/${orderId}/pickup`, {
-        pickup_notes: null
-      });
+      await apiClient.post(`/driver/orders/${orderId}/pickup`, { pickup_notes: null });
       fetchOrderDetails();
     } catch (error) {
-      console.error('Pickup order error:', error.response?.data);
       Alert.alert('Error', error.response?.data?.detail || 'Failed to mark as picked up');
     } finally {
       setActionLoading(false);
@@ -83,9 +90,10 @@ export default function OrderDetailScreen({ route, navigation }) {
     setActionLoading(true);
     try {
       await apiClient.post(`/driver/orders/${orderId}/in-transit`, {});
+      LocationTracker.setCurrentOrder(orderId);
+      console.log(`📍 Order ${orderId} now IN_TRANSIT, LocationTracker updated`);
       fetchOrderDetails();
     } catch (error) {
-      console.error('In-transit error:', error.response?.data);
       Alert.alert('Error', error.response?.data?.detail || 'Failed to update status');
     } finally {
       setActionLoading(false);
@@ -104,21 +112,16 @@ export default function OrderDetailScreen({ route, navigation }) {
 
     setActionLoading(true);
     try {
-      // 1. Verify OTP and Deliver
       await apiClient.post(`/driver/orders/${orderId}/deliver`, {
         otp: otpInput,
         delivery_notes: null
       });
-
-      // 2. Submit Earnings (Mock distance for now)
-      await submitOrderEarnings(orderId, 5.5); // 5.5 km mock
-
+      await submitOrderEarnings(orderId, 5.5); // Mock distance
       setShowOTPModal(false);
       Alert.alert('Success', 'Order delivered successfully!', [
         { text: 'OK', onPress: () => navigation.navigate('Home') }
       ]);
     } catch (error) {
-      console.error('Delivery error:', error.response?.data);
       Alert.alert('Error', error.response?.data?.detail || 'Verification failed');
     } finally {
       setActionLoading(false);
@@ -140,7 +143,7 @@ export default function OrderDetailScreen({ route, navigation }) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2196F3" />
+        <ActivityIndicator size="large" color={THEME.primary} />
       </View>
     );
   }
@@ -149,111 +152,196 @@ export default function OrderDetailScreen({ route, navigation }) {
 
   const renderActionButton = () => {
     if (actionLoading) {
-      return <ActivityIndicator color="#2196F3" />;
+      return <ActivityIndicator color={THEME.primary} />;
     }
 
     switch (order.status) {
       case 'ASSIGNED':
         return (
-          <TouchableOpacity style={styles.acceptButton} onPress={handleAcceptOrder}>
-            <Text style={styles.buttonText}>Accept Order</Text>
+          <TouchableOpacity style={styles.primaryButton} onPress={handleAcceptOrder}>
+            <Text style={styles.primaryButtonText}>Accept Order</Text>
+            <MaterialCommunityIcons name="check" size={20} color="#fff" />
           </TouchableOpacity>
         );
       case 'ACCEPTED':
         return (
-          <TouchableOpacity style={styles.primaryButton} onPress={handlePickupOrder}>
-            <Text style={styles.buttonText}>Mark Picked Up</Text>
-          </TouchableOpacity>
+          <View>
+            <View style={styles.instructionBox}>
+              <MaterialCommunityIcons name="store" size={20} color={THEME.textGrey} />
+              <Text style={styles.instructionText}>Navigate to restaurant</Text>
+            </View>
+            <TouchableOpacity style={styles.primaryButton} onPress={handlePickupOrder}>
+              <Text style={styles.primaryButtonText}>Confirm Pickup</Text>
+              <MaterialCommunityIcons name="package-variant" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
         );
       case 'PICKED_UP':
         return (
-          <TouchableOpacity style={styles.primaryButton} onPress={handleInTransit}>
-            <Text style={styles.buttonText}>Start Delivery</Text>
-          </TouchableOpacity>
+          <View>
+            <View style={styles.instructionBox}>
+              <MaterialCommunityIcons name="map-marker-path" size={20} color={THEME.textGrey} />
+              <Text style={styles.instructionText}>Head to customer location</Text>
+            </View>
+            <TouchableOpacity style={styles.primaryButton} onPress={handleInTransit}>
+              <Text style={styles.primaryButtonText}>Start Delivery</Text>
+              <MaterialCommunityIcons name="bike" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
         );
       case 'IN_TRANSIT':
         return (
-          <TouchableOpacity style={styles.successButton} onPress={handleDeliverOrder}>
-            <Text style={styles.buttonText}>Complete Delivery</Text>
-          </TouchableOpacity>
+          <View>
+            <View style={styles.instructionBox}>
+              <MaterialCommunityIcons name="home-map-marker" size={20} color={THEME.textGrey} />
+              <Text style={styles.instructionText}>Arriving at customer</Text>
+            </View>
+            <TouchableOpacity style={styles.accentButton} onPress={handleDeliverOrder}>
+              <Text style={styles.accentButtonText}>Complete Delivery</Text>
+              <MaterialCommunityIcons name="check-circle-outline" size={20} color="#000" />
+            </TouchableOpacity>
+          </View>
+        );
+      case 'DELIVERED':
+        return (
+          <View style={styles.completedBanner}>
+            <MaterialCommunityIcons name="check-circle" size={40} color="#fff" />
+            <Text style={styles.completedText}>Order Completed</Text>
+          </View>
         );
       default:
         return null;
     }
   };
 
+  const getStatusColor = () => {
+    switch (order.status) {
+      case 'ASSIGNED': return '#2196F3';
+      case 'ACCEPTED': return '#FF9800';
+      case 'PICKED_UP': return '#9C27B0';
+      case 'IN_TRANSIT': return '#FF5722';
+      case 'DELIVERED': return '#4CAF50';
+      default: return '#666';
+    }
+  };
+
   return (
-    <ScrollView style={styles.container}>
-      {/* Status Banner */}
-      <View style={styles.statusBanner}>
-        <Text style={styles.statusText}>Status: {order.status}</Text>
-      </View>
-
-      {/* Restaurant Info */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>🏪 Pickup</Text>
-        <Text style={styles.name}>{order.restaurant_name}</Text>
-        <Text style={styles.address}>{order.pickup_address}</Text>
-        <TouchableOpacity 
-          style={styles.actionLink}
-          onPress={() => openMap(order.pickup_lat, order.pickup_lng, order.restaurant_name)}
-        >
-          <Text style={styles.linkText}>📍 Navigate to Restaurant</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Customer Info */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>👤 Dropoff</Text>
-        <Text style={styles.name}>{order.customer_name}</Text>
-        <Text style={styles.address}>{order.delivery_address}</Text>
-        <View style={styles.row}>
-          <TouchableOpacity 
-            style={styles.actionLink}
-            onPress={() => openMap(order.delivery_lat, order.delivery_lng, order.customer_name)}
-          >
-            <Text style={styles.linkText}>📍 Navigate</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionLink, { marginLeft: 15 }]}
-            onPress={() => callCustomer(order.customer_phone)}
-          >
-            <Text style={styles.linkText}>📞 Call</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Order Items */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>📦 Items</Text>
-        {order.items_json && order.items_json.map((item, index) => (
-          <View key={index} style={styles.itemRow}>
-            <Text style={styles.itemQty}>{item.quantity}x</Text>
-            <Text style={styles.itemName}>{item.name}</Text>
-            <Text style={styles.itemPrice}>₹{item.price}</Text>
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor={THEME.grey} />
+      
+      <ScrollView style={styles.container}>
+        {/* Header / Status */}
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <Text style={styles.orderId}>Order #{orderId}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor() + '20' }]}>
+              <Text style={[styles.statusText, { color: getStatusColor() }]}>{order.status.replace('_', ' ')}</Text>
+            </View>
           </View>
-        ))}
-        <View style={styles.divider} />
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total to Collect</Text>
-          <Text style={styles.totalAmount}>₹{order.order_total}</Text>
+          <Text style={styles.timeText}>
+            {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </Text>
         </View>
-      </View>
 
-      {/* Earnings Card */}
-      {order.driver_earnings && (
-        <View style={styles.earningsCard}>
-          <View style={styles.earningsHeader}>
-            <Text style={styles.earningsIcon}>💰</Text>
-            <Text style={styles.earningsTitle}>Your Earnings</Text>
+        <OrderProgressBar currentStatus={order.status} />
+
+        {/* Quick Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <MaterialCommunityIcons name="map-marker-distance" size={20} color={THEME.textGrey} />
+            <Text style={styles.statValue}>{order.estimated_distance_km?.toFixed(1) || '--'} km</Text>
+            <Text style={styles.statLabel}>Distance</Text>
           </View>
-          <Text style={styles.earningsAmount}>₹{order.driver_earnings.toFixed(2)}</Text>
-          <Text style={styles.earningsNote}>Amount you'll earn for this delivery</Text>
+          <View style={styles.verticalDivider} />
+          <View style={styles.statItem}>
+            <MaterialCommunityIcons name="clock-outline" size={20} color={THEME.textGrey} />
+            <Text style={styles.statValue}>{order.estimated_duration_minutes || '--'} min</Text>
+            <Text style={styles.statLabel}>Est. Time</Text>
+          </View>
+          <View style={styles.verticalDivider} />
+          <View style={styles.statItem}>
+            <MaterialCommunityIcons name="cash" size={20} color={THEME.textGrey} />
+            <Text style={styles.statValue}>₹{order.driver_earnings?.toFixed(0) || '--'}</Text>
+            <Text style={styles.statLabel}>Earnings</Text>
+          </View>
         </View>
-      )}
 
-      {/* Action Button */}
-      <View style={styles.footer}>
+        {/* Restaurant Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <MaterialCommunityIcons name="store" size={20} color={THEME.primary} />
+            <Text style={styles.sectionTitle}>PICKUP</Text>
+          </View>
+          <View style={styles.card}>
+            <Text style={styles.locationName}>{order.restaurant_name}</Text>
+            <Text style={styles.addressText}>{order.pickup_address}</Text>
+            <TouchableOpacity 
+              style={[styles.actionButton, { width: '100%' }]}
+              onPress={() => openMap(order.pickup_lat, order.pickup_lng, order.restaurant_name)}
+            >
+              <MaterialCommunityIcons name="navigation" size={20} color={THEME.primary} />
+              <Text style={styles.actionButtonText}>Navigate to Restaurant</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Customer Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <MaterialCommunityIcons name="account" size={20} color={THEME.primary} />
+            <Text style={styles.sectionTitle}>DROPOFF</Text>
+          </View>
+          <View style={styles.card}>
+            <Text style={styles.locationName}>{order.customer_name}</Text>
+            <Text style={styles.addressText}>{order.delivery_address}</Text>
+            <View style={styles.actionRow}>
+              <TouchableOpacity 
+                style={[styles.actionButton, { flex: 1, marginRight: 8 }]}
+                onPress={() => openMap(order.delivery_lat, order.delivery_lng, order.customer_name)}
+              >
+                <MaterialCommunityIcons name="navigation" size={20} color={THEME.primary} />
+                <Text style={styles.actionButtonText}>Navigate</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.actionButton, { flex: 1, marginLeft: 8 }]}
+                onPress={() => callCustomer(order.customer_phone)}
+              >
+                <MaterialCommunityIcons name="phone" size={20} color={THEME.primary} />
+                <Text style={styles.actionButtonText}>Call</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Order Items */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <MaterialCommunityIcons name="shopping" size={20} color={THEME.primary} />
+            <Text style={styles.sectionTitle}>ORDER DETAILS</Text>
+          </View>
+          <View style={styles.card}>
+            {order.items_json && order.items_json.map((item, index) => (
+              <View key={index} style={styles.itemRow}>
+                <View style={styles.itemInfo}>
+                  <Text style={styles.itemQuantity}>{item.quantity}x</Text>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                </View>
+                <Text style={styles.itemPrice}>₹{item.price}</Text>
+              </View>
+            ))}
+            <View style={styles.divider} />
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Total Amount</Text>
+              <Text style={styles.totalValue}>₹{order.order_total}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={{ height: 140 }} />
+      </ScrollView>
+
+      {/* Bottom Action Bar */}
+      <View style={styles.bottomBar}>
         {renderActionButton()}
       </View>
 
@@ -261,13 +349,13 @@ export default function OrderDetailScreen({ route, navigation }) {
       <Modal
         visible={showOTPModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowOTPModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.otpModal}>
-            <Text style={styles.otpTitle}>Enter Delivery OTP</Text>
-            <Text style={styles.otpSubtitle}>Ask customer for 6-digit code</Text>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Delivery Verification</Text>
+            <Text style={styles.modalSubtitle}>Enter the 6-digit code from the customer</Text>
             
             <TextInput
               style={styles.otpInput}
@@ -280,96 +368,306 @@ export default function OrderDetailScreen({ route, navigation }) {
             />
 
             <TouchableOpacity style={styles.verifyButton} onPress={verifyAndComplete}>
-              <Text style={styles.buttonText}>Verify & Complete</Text>
+              <Text style={styles.verifyButtonText}>Complete Delivery</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity onPress={() => setShowOTPModal(false)}>
-              <Text style={styles.cancelText}>Cancel</Text>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setShowOTPModal(false)}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  statusBanner: { backgroundColor: '#1A1A1A', padding: 15, alignItems: 'center' },
-  statusText: { color: '#D4E157', fontWeight: 'bold', textTransform: 'uppercase', fontSize: 16 },
-  card: { 
-    backgroundColor: '#fff', 
-    margin: 15, 
-    padding: 20, 
-    borderRadius: 20, 
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+  mainContainer: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
   },
-  sectionTitle: { fontSize: 12, color: '#888', marginBottom: 8, fontWeight: 'bold', textTransform: 'uppercase' },
-  name: { fontSize: 20, fontWeight: 'bold', marginBottom: 5, color: '#000' },
-  address: { fontSize: 14, color: '#666', marginBottom: 15 },
-  actionLink: { 
-    paddingVertical: 8, 
-    paddingHorizontal: 12, 
-    backgroundColor: '#F0F0F0', 
-    borderRadius: 8,
-    alignSelf: 'flex-start'
+  container: {
+    flex: 1,
   },
-  linkText: { color: '#000', fontWeight: '600' },
-  row: { flexDirection: 'row' },
-  itemRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  itemQty: { fontWeight: 'bold', marginRight: 10, color: '#D4E157' },
-  itemName: { flex: 1, color: '#333' },
-  itemPrice: { color: '#000', fontWeight: '600' },
-  divider: { height: 1, backgroundColor: '#eee', marginVertical: 15 },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  totalLabel: { fontWeight: 'bold', fontSize: 16 },
-  totalAmount: { fontWeight: 'bold', color: '#000', fontSize: 18 },
-  earningsCard: { 
-    backgroundColor: '#1A1A1A', 
-    margin: 15, 
-    padding: 20, 
-    borderRadius: 20, 
-    elevation: 4,
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  earningsHeader: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 8 
+  header: {
+    padding: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
-  earningsIcon: { 
-    fontSize: 24, 
-    marginRight: 8 
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
   },
-  earningsTitle: { 
-    fontSize: 14, 
-    fontWeight: 'bold', 
-    color: '#D4E157',
-    textTransform: 'uppercase'
+  orderId: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: THEME.primary,
   },
-  earningsAmount: { 
-    fontSize: 36, 
-    fontWeight: 'bold', 
+  timeText: {
+    fontSize: 13,
+    color: THEME.textGrey,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    margin: 15,
+    padding: 15,
+    borderRadius: 16,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    elevation: 1,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  verticalDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: '#eee',
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: THEME.primary,
+    marginTop: 4,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: THEME.textGrey,
+  },
+  section: {
+    marginBottom: 20,
+    paddingHorizontal: 15,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingLeft: 5,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: THEME.textGrey,
+    marginLeft: 8,
+    letterSpacing: 1,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 15,
+    elevation: 1,
+  },
+  locationName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: THEME.primary,
+    marginBottom: 4,
+  },
+  addressText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+    lineHeight: 20,
+  },
+  actionRow: {
+    flexDirection: 'row',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: THEME.accent,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: THEME.primary,
+    marginLeft: 8,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  itemInfo: {
+    flexDirection: 'row',
+    flex: 1,
+  },
+  itemQuantity: {
+    fontWeight: 'bold',
+    color: THEME.primary,
+    marginRight: 10,
+    width: 25,
+  },
+  itemName: {
+    flex: 1,
+    color: '#333',
+    fontSize: 14,
+  },
+  itemPrice: {
+    fontWeight: '600',
+    color: THEME.primary,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#eee',
+    marginVertical: 12,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  totalLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  totalValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: THEME.primary,
+  },
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    elevation: 10,
+  },
+  primaryButton: {
+    backgroundColor: THEME.primary,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+  },
+  primaryButtonText: {
     color: '#fff',
-    marginBottom: 4
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 10,
   },
-  earningsNote: { 
-    fontSize: 12, 
-    color: '#888' 
+  accentButton: {
+    backgroundColor: THEME.accent,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
   },
-  footer: { padding: 20 },
-  acceptButton: { backgroundColor: '#000', padding: 18, borderRadius: 30, alignItems: 'center' },
-  primaryButton: { backgroundColor: '#000', padding: 18, borderRadius: 30, alignItems: 'center' },
-  successButton: { backgroundColor: '#D4E157', padding: 18, borderRadius: 30, alignItems: 'center' },
-  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
-  otpModal: { backgroundColor: '#fff', padding: 30, borderRadius: 24, alignItems: 'center' },
-  otpTitle: { fontSize: 24, fontWeight: 'bold', marginBottom: 10 },
-  otpSubtitle: { color: '#666', marginBottom: 30 },
-  otpInput: { fontSize: 32, letterSpacing: 8, borderWidth: 1, borderColor: '#ddd', borderRadius: 12, padding: 15, width: '100%', textAlign: 'center', marginBottom: 30, fontWeight: 'bold' },
-  verifyButton: { backgroundColor: '#000', padding: 18, borderRadius: 30, width: '100%', alignItems: 'center' },
-  cancelText: { marginTop: 20, color: '#888', fontSize: 16 }
+  accentButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+  instructionBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 15,
+    backgroundColor: '#F8F9FA',
+    padding: 10,
+    borderRadius: 8,
+  },
+  instructionText: {
+    color: THEME.textGrey,
+    marginLeft: 8,
+    fontSize: 13,
+  },
+  completedBanner: {
+    backgroundColor: '#4CAF50',
+    padding: 15,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completedText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 25,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    color: '#666',
+    marginBottom: 25,
+  },
+  otpInput: {
+    fontSize: 24,
+    letterSpacing: 5,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    padding: 15,
+    width: '100%',
+    textAlign: 'center',
+    marginBottom: 25,
+    fontWeight: 'bold',
+  },
+  verifyButton: {
+    backgroundColor: THEME.primary,
+    width: '100%',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  verifyButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  cancelButton: {
+    padding: 10,
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 14,
+  },
 });

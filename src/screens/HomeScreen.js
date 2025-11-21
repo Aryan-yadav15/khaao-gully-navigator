@@ -8,42 +8,43 @@ import {
   Switch,
   RefreshControl,
   Alert,
-  Image,
-  TextInput,
   StatusBar
 } from 'react-native';
-import { getAssignedOrders, getCurrentDriver } from '../api/client';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { getAssignedOrders, getCurrentDriver, getDriverStats, toggleOnlineStatus as toggleOnlineAPI } from '../api/client';
 import websocketService from '../services/websocket';
+import LocationTracker from '../services/LocationTracker';
 
-// Theme Constants based on reference image
+// Theme Constants
 const THEME = {
   dark: '#1A1A1A',
   light: '#FFFFFF',
   accent: '#D4E157', // Lime Green
   grey: '#F5F5F5',
   textGrey: '#888888',
-  danger: '#FF5252'
+  danger: '#FF5252',
+  primary: '#000000'
 };
 
 export default function HomeScreen({ navigation }) {
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [driver, setDriver] = useState(null);
   const [activeOrders, setActiveOrders] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('Active'); // For filter chips
+  const [recentOrders, setRecentOrders] = useState([]);
 
-  // Check if driver is verified (Mock logic - replace with actual field from API)
-  const isVerified = driver?.status === 'active' || driver?.is_verified === true || true; 
+  // Check if driver is verified
+  const isVerified = driver?.status === 'ACTIVE' || driver?.status === 'APPROVED' || driver?.is_verified === true; 
   
-  // Mock data for demo
+  // Real stats from API
   const [stats, setStats] = useState({
-    todayEarnings: 450,
-    weekEarnings: 3200,
-    monthEarnings: 12500,
-    todayDeliveries: 12,
-    weekDeliveries: 45,
-    monthDeliveries: 180,
-    todayDistance: 45.2,
+    todayEarnings: 0,
+    weekEarnings: 0,
+    monthEarnings: 0,
+    todayDeliveries: 0,
+    weekDeliveries: 0,
+    monthDeliveries: 0,
+    todayDistance: 0,
   });
 
   useEffect(() => {
@@ -73,8 +74,9 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleOrderAssigned = (data) => {
+    LocationTracker.setCurrentOrder(data.order_id || data.id);
     Alert.alert(
-      '🚚 New Order Assigned!',
+      'New Order Assigned',
       `Order #${data.order_id || data.id} has been assigned to you.`,
       [
         { text: 'View', onPress: () => { loadDashboard(); navigation.navigate('OrderDetail', { orderId: data.order_id || data.id }); } },
@@ -101,11 +103,40 @@ export default function HomeScreen({ navigation }) {
   const loadDashboard = async () => {
     setRefreshing(true);
     try {
+      // Load driver profile
       const driverData = await getCurrentDriver();
       setDriver(driverData);
+      setIsOnline(driverData?.is_online || false);
+      
+      if (driverData?.is_online) {
+        LocationTracker.startTracking();
+      }
+
+      // Load driver stats
+      const statsData = await getDriverStats();
+      setStats({
+        todayEarnings: statsData.today.earnings,
+        weekEarnings: statsData.week.earnings,
+        monthEarnings: statsData.month.earnings,
+        todayDeliveries: statsData.today.deliveries,
+        weekDeliveries: statsData.week.deliveries,
+        monthDeliveries: statsData.month.deliveries,
+        todayDistance: statsData.today.distance,
+      });
+      
+      // Load orders
       const orders = await getAssignedOrders();
       const active = orders.filter(o => ['ASSIGNED', 'ACCEPTED', 'PICKED_UP', 'IN_TRANSIT'].includes(o.status));
+      
+      if (active.length > 0) {
+        LocationTracker.setCurrentOrder(active[0].id);
+      } else {
+        LocationTracker.setCurrentOrder(null);
+      }
+
+      const recent = orders.filter(o => o.status === 'DELIVERED').slice(0, 5);
       setActiveOrders(active);
+      setRecentOrders(recent);
     } catch (error) {
       console.error('Error loading dashboard:', error);
     }
@@ -118,35 +149,33 @@ export default function HomeScreen({ navigation }) {
       return;
     }
     const newStatus = !isOnline;
-    setIsOnline(newStatus);
-    if (newStatus) {
-      const driverData = await getCurrentDriver();
-      if (driverData) await websocketService.connect(driverData.id);
+    
+    // Call API to toggle status
+    const result = await toggleOnlineAPI(newStatus);
+    if (result.success) {
+      setIsOnline(newStatus);
+      if (newStatus) {
+        const driverData = await getCurrentDriver();
+        if (driverData) await websocketService.connect(driverData.id);
+        LocationTracker.startTracking();
+      } else {
+        websocketService.disconnect();
+        LocationTracker.stopTracking();
+      }
     } else {
-      websocketService.disconnect();
+      Alert.alert('Error', result.message || 'Failed to update status');
     }
   };
 
   // --- UI Components ---
-
-  const StatusChip = ({ label, active }) => (
-    <TouchableOpacity 
-      style={[styles.chip, active && styles.chipActive]}
-      onPress={() => setSelectedCategory(label)}
-    >
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>
-        {active ? '● ' : ''}{label}
-      </Text>
-    </TouchableOpacity>
-  );
 
   const OrderCard = ({ order }) => (
     <TouchableOpacity 
       style={styles.card}
       onPress={() => navigation.navigate('OrderDetail', { orderId: order.id })}
     >
-      <View style={styles.cardImagePlaceholder}>
-        <Text style={{fontSize: 30}}>🍱</Text>
+      <View style={styles.cardIconContainer}>
+        <MaterialCommunityIcons name="food" size={24} color={THEME.primary} />
       </View>
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle}>{order.restaurant_name}</Text>
@@ -155,7 +184,7 @@ export default function HomeScreen({ navigation }) {
         </Text>
         <View style={styles.cardFooter}>
           <View style={styles.statusPill}>
-            <Text style={styles.statusText}>{order.status}</Text>
+            <Text style={styles.statusText}>{order.status.replace('_', ' ')}</Text>
           </View>
           <Text style={styles.priceText}>₹{order.driver_earnings?.toFixed(0) || '0'}</Text>
         </View>
@@ -165,6 +194,7 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.newBadgeText}>NEW</Text>
         </View>
       )}
+      <MaterialCommunityIcons name="chevron-right" size={24} color="#ccc" />
     </TouchableOpacity>
   );
 
@@ -224,7 +254,7 @@ export default function HomeScreen({ navigation }) {
           activeOrders.map(order => <OrderCard key={order.id} order={order} />)
         ) : (
           <View style={styles.emptyState}>
-            <Text style={{fontSize: 40, marginBottom: 10}}>😴</Text>
+            <MaterialCommunityIcons name="sleep" size={40} color="#ccc" style={{ marginBottom: 10 }} />
             <Text style={styles.emptyText}>No active orders</Text>
             <Text style={styles.emptySubtext}>Relax! New orders will appear here.</Text>
           </View>
@@ -238,33 +268,43 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Mock Recent Orders */}
-        {[1, 2, 3, 4, 5].map((i) => (
-          <View key={i} style={styles.historyRow}>
-            <View style={styles.historyIcon}>
-              <Text>✅</Text>
+        {recentOrders.length > 0 ? (
+          recentOrders.map((order) => (
+            <View key={order.id} style={styles.historyRow}>
+              <View style={styles.historyIcon}>
+                <MaterialCommunityIcons name="check-circle" size={24} color="#4CAF50" />
+              </View>
+              <View style={styles.historyContent}>
+                <Text style={styles.historyTitle}>Order #{order.id}</Text>
+                <Text style={styles.historySubtitle}>
+                  {order.delivered_at 
+                    ? new Date(order.delivered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : 'Delivered'}
+                </Text>
+              </View>
+              <Text style={styles.historyAmount}>₹{order.driver_earnings?.toFixed(0) || '0'}</Text>
             </View>
-            <View style={styles.historyContent}>
-              <Text style={styles.historyTitle}>Order #100{i}</Text>
-              <Text style={styles.historySubtitle}>Delivered at 2:30 PM</Text>
-            </View>
-            <Text style={styles.historyAmount}>₹45</Text>
+          ))
+        ) : (
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="package-variant" size={40} color="#ccc" style={{ marginBottom: 10 }} />
+            <Text style={styles.emptyText}>No recent deliveries</Text>
           </View>
-        ))}
+        )}
 
         {/* Quick Nav Grid */}
         <Text style={[styles.sectionTitle, {marginTop: 25, marginBottom: 15}]}>Quick Menu</Text>
         <View style={styles.gridContainer}>
           <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('OrderHistory')}>
-            <Text style={styles.gridIcon}>📜</Text>
+            <MaterialCommunityIcons name="history" size={28} color={THEME.primary} style={{ marginBottom: 8 }} />
             <Text style={styles.gridLabel}>History</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('Earnings')}>
-            <Text style={styles.gridIcon}>💰</Text>
+            <MaterialCommunityIcons name="cash" size={28} color={THEME.primary} style={{ marginBottom: 8 }} />
             <Text style={styles.gridLabel}>Earnings</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('Profile')}>
-            <Text style={styles.gridIcon}>👤</Text>
+            <MaterialCommunityIcons name="account" size={28} color={THEME.primary} style={{ marginBottom: 8 }} />
             <Text style={styles.gridLabel}>Profile</Text>
           </TouchableOpacity>
         </View>
@@ -276,6 +316,7 @@ export default function HomeScreen({ navigation }) {
       {activeOrders.length > 0 && (
         <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('PooledOrders')}>
           <Text style={styles.fabText}>Check {activeOrders.length} Active Orders</Text>
+          <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" style={{ marginLeft: 5 }} />
         </TouchableOpacity>
       )}
     </View>
@@ -384,96 +425,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#4CAF50',
   },
-  searchBar: {
-    backgroundColor: '#333',
-    marginHorizontal: 20,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    height: 45,
-    marginBottom: 15,
-  },
-  searchIcon: {
-    marginRight: 10,
-    color: '#888',
-  },
-  searchInput: {
-    flex: 1,
-    color: '#fff',
-    fontSize: 14,
-  },
-  chipContainer: {
-    paddingLeft: 20,
-  },
-  chip: {
-    backgroundColor: '#333',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 10,
-  },
-  chipActive: {
-    backgroundColor: THEME.accent,
-  },
-  chipText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 13,
-  },
-  chipTextActive: {
-    color: '#000',
-  },
   contentContainer: {
     flex: 1,
     padding: 20,
-  },
-  statusCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 20,
-    marginBottom: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-  },
-  welcomeText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  statusSubtext: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 4,
-  },
-  earningsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 25,
-  },
-  earningsBox: {
-    flex: 1,
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 16,
-    marginHorizontal: 5,
-    alignItems: 'center',
-    elevation: 1,
-  },
-  earningsLabel: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 5,
-  },
-  earningsValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -502,11 +456,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
   },
-  cardImagePlaceholder: {
-    width: 60,
-    height: 60,
+  cardIconContainer: {
+    width: 50,
+    height: 50,
     backgroundColor: '#F5F5F5',
-    borderRadius: 30,
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
@@ -592,10 +546,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 1,
   },
-  gridIcon: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
   gridLabel: {
     fontSize: 12,
     fontWeight: '600',
@@ -611,6 +561,8 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: 'center',
     elevation: 5,
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   fabText: {
     color: '#fff',
