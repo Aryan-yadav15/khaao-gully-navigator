@@ -217,12 +217,14 @@ export default function PooledOrdersScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F8F9FA',
   },
   header: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#1A1A1A',
     padding: 20,
     paddingTop: 15,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   headerTitle: {
     fontSize: 24,
@@ -234,11 +236,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: '#333',
+    padding: 10,
+    borderRadius: 12,
   },
   progressText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#D4E157',
   },
   orderCountText: {
     fontSize: 14,
@@ -251,19 +256,19 @@ const styles = StyleSheet.create({
   },
   restaurantCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 15,
     marginBottom: 15,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#eee',
     shadowColor: '#000',
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 2,
   },
   restaurantCardCollected: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#F1F8E9',
+    borderColor: '#D4E157',
+    backgroundColor: '#F9FBE7',
   },
   restaurantHeader: {
     flexDirection: 'row',
@@ -273,7 +278,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -281,7 +286,7 @@ const styles = StyleSheet.create({
   sequenceText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#D4E157',
   },
   restaurantInfo: {
     flex: 1,
@@ -289,7 +294,7 @@ const styles = StyleSheet.create({
   restaurantName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#000',
     marginBottom: 4,
   },
   restaurantAddress: {
@@ -302,7 +307,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#999',
+    color: '#888',
     marginRight: 15,
   },
   actions: {
@@ -310,9 +315,9 @@ const styles = StyleSheet.create({
   },
   navigateButton: {
     flex: 1,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#1A1A1A',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
     marginRight: 10,
   },
@@ -325,14 +330,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f0f0f0',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#ddd',
   },
   checkButtonActive: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
+    backgroundColor: '#D4E157',
+    borderColor: '#D4E157',
   },
   checkButtonText: {
     color: '#666',
@@ -340,32 +345,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   checkButtonTextActive: {
-    color: '#fff',
+    color: '#000',
   },
   collectedBadge: {
     position: 'absolute',
     top: 15,
     right: 15,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#D4E157',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
   },
   collectedBadgeText: {
-    color: '#fff',
+    color: '#000',
     fontSize: 11,
     fontWeight: 'bold',
   },
   footer: {
     backgroundColor: '#fff',
-    padding: 15,
+    padding: 20,
     borderTopWidth: 1,
     borderTopColor: '#eee',
   },
   proceedButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#000',
     padding: 18,
-    borderRadius: 12,
+    borderRadius: 30,
     alignItems: 'center',
   },
   proceedButtonDisabled: {

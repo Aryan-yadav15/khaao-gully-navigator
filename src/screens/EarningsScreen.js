@@ -200,41 +200,43 @@ export default function EarningsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F8F9FA',
   },
   filterContainer: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1A1A',
     padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingBottom: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   filterTab: {
     flex: 1,
     padding: 12,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 20,
     marginHorizontal: 5,
+    backgroundColor: '#333',
   },
   filterTabActive: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#D4E157',
   },
   filterText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: '#fff',
   },
   filterTextActive: {
-    color: '#fff',
+    color: '#000',
   },
   content: {
     flex: 1,
   },
   totalCard: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#1A1A1A',
     margin: 15,
     padding: 25,
-    borderRadius: 16,
+    borderRadius: 24,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 6,
@@ -242,9 +244,11 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 16,
-    color: '#fff',
+    color: '#D4E157',
     opacity: 0.9,
     marginBottom: 8,
+    textTransform: 'uppercase',
+    fontWeight: 'bold',
   },
   totalAmount: {
     fontSize: 48,
@@ -255,7 +259,7 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.3)',
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
     paddingTop: 15,
   },
   stat: {
@@ -269,8 +273,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: '#fff',
-    opacity: 0.8,
+    color: '#888',
   },
   section: {
     paddingHorizontal: 15,
@@ -279,16 +282,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#000',
     marginBottom: 12,
   },
   breakdownCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
+    borderRadius: 20,
+    padding: 20,
     shadowColor: '#000',
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 2,
   },
   breakdownRow: {
@@ -303,17 +306,17 @@ const styles = StyleSheet.create({
   breakdownLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#000',
     marginBottom: 4,
   },
   breakdownDetail: {
     fontSize: 13,
-    color: '#999',
+    color: '#888',
   },
   breakdownAmount: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#000',
   },
   bonusAmount: {
     color: '#4CAF50',
@@ -324,11 +327,11 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
+    borderRadius: 20,
+    padding: 20,
     shadowColor: '#000',
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 2,
   },
   infoRow: {
@@ -349,12 +352,12 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: '#000',
   },
   infoLabelTotal: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#000',
   },
   infoValueTotal: {
     fontSize: 18,
@@ -363,11 +366,11 @@ const styles = StyleSheet.create({
   },
   paymentCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 20,
     shadowColor: '#000',
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 2,
   },
   paymentRow: {
@@ -390,18 +393,17 @@ const styles = StyleSheet.create({
   paymentAmount: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#4CAF50',
+    color: '#000',
   },
   paymentNote: {
     fontSize: 13,
-    color: '#999',
+    color: '#888',
   },
   helpCard: {
     backgroundColor: '#E3F2FD',
-    borderRadius: 12,
-    padding: 15,
-    borderLeftWidth: 4,
-    borderLeftColor: '#2196F3',
+    borderRadius: 20,
+    padding: 20,
+    borderLeftWidth: 0,
   },
   helpText: {
     fontSize: 14,
@@ -411,6 +413,6 @@ const styles = StyleSheet.create({
   },
   helpBold: {
     fontWeight: '600',
-    color: '#333',
+    color: '#000',
   },
 });

@@ -184,28 +184,30 @@ export default function ProfileScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F8F9FA',
   },
   header: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#1A1A1A',
     padding: 30,
     alignItems: 'center',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
   avatarContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#fff',
+    backgroundColor: '#333',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
+    borderWidth: 2,
+    borderColor: '#D4E157',
   },
   avatarText: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#2196F3',
+    color: '#D4E157',
   },
   name: {
     fontSize: 24,
@@ -216,17 +218,20 @@ const styles = StyleSheet.create({
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#333',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   ratingText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#D4E157',
     marginRight: 8,
   },
   ratingSubtext: {
-    fontSize: 14,
-    color: '#fff',
-    opacity: 0.9,
+    fontSize: 12,
+    color: '#888',
   },
   section: {
     paddingHorizontal: 15,
@@ -235,16 +240,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#000',
     marginBottom: 12,
   },
   infoCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 15,
     shadowColor: '#000',
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 2,
   },
   infoRow: {
@@ -260,7 +265,7 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: '#000',
   },
   divider: {
     height: 1,
@@ -268,23 +273,23 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 15,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
     shadowColor: '#000',
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 2,
   },
   sosButton: {
-    backgroundColor: '#FFF3CD',
-    borderWidth: 2,
-    borderColor: '#FF5722',
+    backgroundColor: '#FFEBEE',
+    borderWidth: 1,
+    borderColor: '#FF5252',
   },
   actionIcon: {
-    fontSize: 32,
+    fontSize: 24,
     marginRight: 15,
   },
   actionContent: {
@@ -293,29 +298,29 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#000',
     marginBottom: 2,
   },
   sosText: {
-    color: '#FF5722',
+    color: '#FF5252',
     fontWeight: 'bold',
   },
   actionSubtext: {
     fontSize: 12,
-    color: '#999',
+    color: '#888',
   },
   logoutButton: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 18,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FF5722',
+    borderWidth: 1,
+    borderColor: '#FF5252',
   },
   logoutText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FF5722',
+    color: '#FF5252',
   },
   footer: {
     alignItems: 'center',

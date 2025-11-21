@@ -73,6 +73,7 @@ export default function LoginScreen({ navigation }) {
             <TextInput
               style={styles.input}
               placeholder="driver@example.com"
+              placeholderTextColor="#666"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -87,6 +88,7 @@ export default function LoginScreen({ navigation }) {
             <TextInput
               style={styles.input}
               placeholder="Enter your password"
+              placeholderTextColor="#666"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -133,7 +135,7 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1A1A', // Dark Theme
   },
   content: {
     flex: 1,
@@ -151,12 +153,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#fff', // White text
     marginBottom: 5,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#888', // Grey text
   },
   form: {
     marginBottom: 30,
@@ -167,21 +169,22 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: '#D4E157', // Lime Green Accent
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: '#333',
+    borderRadius: 12,
     padding: 15,
     fontSize: 16,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#2A2A2A', // Dark input bg
+    color: '#fff', // White text
   },
   loginButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#D4E157', // Lime Green Button
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
     marginTop: 10,
   },
@@ -189,7 +192,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   loginButtonText: {
-    color: '#fff',
+    color: '#000', // Black text on Lime Green
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -198,19 +201,19 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   forgotPasswordText: {
-    color: '#FF6B35',
+    color: '#D4E157',
     fontSize: 14,
   },
   footer: {
     alignItems: 'center',
   },
   footerText: {
-    color: '#999',
+    color: '#666',
     fontSize: 14,
     marginBottom: 15,
   },
   devHint: {
-    color: '#2196F3',
+    color: '#666',
     fontSize: 11,
     textAlign: 'center',
     marginTop: 5,

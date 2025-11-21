@@ -21,12 +21,17 @@ export default function AppNavigator() {
         initialRouteName="Login"
         screenOptions={{
           headerStyle: {
-            backgroundColor: '#2196F3',
+            backgroundColor: '#1A1A1A', // Dark header like reference
+            elevation: 0, // Remove shadow for flat look
+            shadowOpacity: 0,
           },
-          headerTintColor: '#fff',
+          headerTintColor: '#D4E157', // Lime green accent for back buttons/text
           headerTitleStyle: {
             fontWeight: 'bold',
+            fontSize: 20,
+            color: '#fff', // White title
           },
+          cardStyle: { backgroundColor: '#F8F9FA' } // Light grey background for screens
         }}
       >
         {/* Auth Screens */}
@@ -41,8 +46,16 @@ export default function AppNavigator() {
           name="Home" 
           component={HomeScreen}
           options={{ 
-            title: 'Dashboard',
-            headerLeft: null, // Disable back button on home
+            title: 'KhaoGully~', // Branding style from image
+            headerLeft: null,
+            headerRight: () => (
+              // Mock Cart/Notification Icon
+              <React.Fragment>
+                 {/* You would import View/Text/Icon here properly in a real scenario, 
+                     but for Navigator config we keep it simple or use a custom header component.
+                     For now, we just set the title style. */}
+              </React.Fragment>
+            )
           }}
         />
 
