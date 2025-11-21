@@ -1,0 +1,416 @@
+import React, { useState } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity 
+} from 'react-native';
+
+export default function EarningsScreen() {
+  const [filter, setFilter] = useState('today'); // today, week, month
+
+  // Mock data for demo
+  const earnings = {
+    today: {
+      deliveries: 12,
+      distance: 45.2,
+      basePay: 600, // ₹50 per delivery
+      distancePay: 452, // ₹10 per km
+      bonus: 0,
+      total: 1052,
+    },
+    week: {
+      deliveries: 45,
+      distance: 165.8,
+      basePay: 2250,
+      distancePay: 1658,
+      bonus: 300,
+      total: 4208,
+    },
+    month: {
+      deliveries: 180,
+      distance: 650.5,
+      basePay: 9000,
+      distancePay: 6505,
+      bonus: 1200,
+      total: 16705,
+    },
+  };
+
+  const currentEarnings = earnings[filter];
+
+  return (
+    <View style={styles.container}>
+      {/* Filter Tabs */}
+      <View style={styles.filterContainer}>
+        <TouchableOpacity
+          style={[styles.filterTab, filter === 'today' && styles.filterTabActive]}
+          onPress={() => setFilter('today')}
+        >
+          <Text style={[styles.filterText, filter === 'today' && styles.filterTextActive]}>
+            Today
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterTab, filter === 'week' && styles.filterTabActive]}
+          onPress={() => setFilter('week')}
+        >
+          <Text style={[styles.filterText, filter === 'week' && styles.filterTextActive]}>
+            This Week
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterTab, filter === 'month' && styles.filterTabActive]}
+          onPress={() => setFilter('month')}
+        >
+          <Text style={[styles.filterText, filter === 'month' && styles.filterTextActive]}>
+            This Month
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.content}>
+        {/* Total Earnings Card */}
+        <View style={styles.totalCard}>
+          <Text style={styles.totalLabel}>Total Earnings</Text>
+          <Text style={styles.totalAmount}>₹{currentEarnings.total.toFixed(2)}</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.stat}>
+              <Text style={styles.statValue}>{currentEarnings.deliveries}</Text>
+              <Text style={styles.statLabel}>Deliveries</Text>
+            </View>
+            <View style={styles.stat}>
+              <Text style={styles.statValue}>{currentEarnings.distance.toFixed(1)} km</Text>
+              <Text style={styles.statLabel}>Distance</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Earnings Breakdown */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>💰 Earnings Breakdown</Text>
+
+          <View style={styles.breakdownCard}>
+            <View style={styles.breakdownRow}>
+              <View style={styles.breakdownLeft}>
+                <Text style={styles.breakdownLabel}>Base Pay</Text>
+                <Text style={styles.breakdownDetail}>
+                  ₹50 × {currentEarnings.deliveries} deliveries
+                </Text>
+              </View>
+              <Text style={styles.breakdownAmount}>
+                ₹{currentEarnings.basePay.toFixed(2)}
+              </Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.breakdownRow}>
+              <View style={styles.breakdownLeft}>
+                <Text style={styles.breakdownLabel}>Distance Pay</Text>
+                <Text style={styles.breakdownDetail}>
+                  ₹10 × {currentEarnings.distance.toFixed(1)} km
+                </Text>
+              </View>
+              <Text style={styles.breakdownAmount}>
+                ₹{currentEarnings.distancePay.toFixed(2)}
+              </Text>
+            </View>
+
+            {currentEarnings.bonus > 0 && (
+              <>
+                <View style={styles.divider} />
+                <View style={styles.breakdownRow}>
+                  <View style={styles.breakdownLeft}>
+                    <Text style={styles.breakdownLabel}>Bonus</Text>
+                    <Text style={styles.breakdownDetail}>
+                      Performance bonus
+                    </Text>
+                  </View>
+                  <Text style={[styles.breakdownAmount, styles.bonusAmount]}>
+                    +₹{currentEarnings.bonus.toFixed(2)}
+                  </Text>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+
+        {/* Fuel Reimbursement */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>⛽ Fuel Reimbursement</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Distance Traveled:</Text>
+              <Text style={styles.infoValue}>{currentEarnings.distance.toFixed(1)} km</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Rate:</Text>
+              <Text style={styles.infoValue}>₹10 per km</Text>
+            </View>
+            <View style={[styles.infoRow, styles.infoRowTotal]}>
+              <Text style={styles.infoLabelTotal}>Total Reimbursement:</Text>
+              <Text style={styles.infoValueTotal}>
+                ₹{(currentEarnings.distance * 10).toFixed(2)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Payment Status */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>💳 Payment Status</Text>
+          <View style={styles.paymentCard}>
+            <View style={styles.paymentRow}>
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusText}>✓ PAID</Text>
+              </View>
+              <Text style={styles.paymentAmount}>₹{currentEarnings.total.toFixed(2)}</Text>
+            </View>
+            <Text style={styles.paymentNote}>
+              All earnings have been credited to your account
+            </Text>
+          </View>
+        </View>
+
+        {/* How Earnings Work */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ℹ️ How Earnings Work</Text>
+          <View style={styles.helpCard}>
+            <Text style={styles.helpText}>
+              <Text style={styles.helpBold}>Base Pay:</Text> ₹50 per delivery
+            </Text>
+            <Text style={styles.helpText}>
+              <Text style={styles.helpBold}>Distance Pay:</Text> ₹10 per kilometer driven
+            </Text>
+            <Text style={styles.helpText}>
+              <Text style={styles.helpBold}>Bonus:</Text> Extra earnings for high performance
+            </Text>
+            <Text style={styles.helpText}>
+              <Text style={styles.helpBold}>Fuel Reimbursement:</Text> Included in distance pay
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  filterTab: {
+    flex: 1,
+    padding: 12,
+    alignItems: 'center',
+    borderRadius: 8,
+    marginHorizontal: 5,
+  },
+  filterTabActive: {
+    backgroundColor: '#4CAF50',
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  filterTextActive: {
+    color: '#fff',
+  },
+  content: {
+    flex: 1,
+  },
+  totalCard: {
+    backgroundColor: '#4CAF50',
+    margin: 15,
+    padding: 25,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  totalLabel: {
+    fontSize: 16,
+    color: '#fff',
+    opacity: 0.9,
+    marginBottom: 8,
+  },
+  totalAmount: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 20,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.3)',
+    paddingTop: 15,
+  },
+  stat: {
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#fff',
+    opacity: 0.8,
+  },
+  section: {
+    paddingHorizontal: 15,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  breakdownCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  breakdownLeft: {
+    flex: 1,
+  },
+  breakdownLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  breakdownDetail: {
+    fontSize: 13,
+    color: '#999',
+  },
+  breakdownAmount: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  bonusAmount: {
+    color: '#4CAF50',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+  },
+  infoCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+  },
+  infoRowTotal: {
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    marginTop: 8,
+    paddingTop: 12,
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  infoLabelTotal: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  infoValueTotal: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+  },
+  paymentCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statusBadge: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  statusText: {
+    color: '#4CAF50',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  paymentAmount: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+  },
+  paymentNote: {
+    fontSize: 13,
+    color: '#999',
+  },
+  helpCard: {
+    backgroundColor: '#E3F2FD',
+    borderRadius: 12,
+    padding: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196F3',
+  },
+  helpText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 10,
+    lineHeight: 20,
+  },
+  helpBold: {
+    fontWeight: '600',
+    color: '#333',
+  },
+});
