@@ -6,6 +6,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
 import PooledOrdersScreen from '../screens/PooledOrdersScreen';
+import RestaurantPickupScreen from '../screens/RestaurantPickupScreen';
 import DeliveryListScreen from '../screens/DeliveryListScreen';
 import OrderDetailScreen from '../screens/OrderDetailScreen';
 import OrderHistoryScreen from '../screens/OrderHistoryScreen';
@@ -64,6 +65,12 @@ export default function AppNavigator() {
           name="PooledOrders" 
           component={PooledOrdersScreen}
           options={{ title: 'Restaurant Pickups' }}
+        />
+
+        <Stack.Screen 
+          name="RestaurantPickup" 
+          component={RestaurantPickupScreen}
+          options={{ title: 'Pickup Details' }}
         />
 
         {/* Delivery Flow */}

@@ -169,6 +169,36 @@ export default function HomeScreen({ navigation }) {
 
   // --- UI Components ---
 
+  const PoolCard = ({ poolId, orders }) => {
+    const totalEarnings = orders.reduce((sum, o) => sum + (o.driver_earnings || 0), 0);
+    const restaurantCount = new Set(orders.map(o => o.restaurant_name)).size;
+    const firstOrder = orders[0];
+
+    return (
+      <TouchableOpacity 
+        style={[styles.card, { borderLeftWidth: 4, borderLeftColor: THEME.accent }]}
+        onPress={() => navigation.navigate('PooledOrders', { poolId, orders })}
+      >
+        <View style={styles.cardIconContainer}>
+          <MaterialCommunityIcons name="layers" size={24} color={THEME.primary} />
+        </View>
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>Pool Assignment #{poolId}</Text>
+          <Text style={styles.cardSubtitle} numberOfLines={1}>
+            {orders.length} Orders • {restaurantCount} Restaurants
+          </Text>
+          <View style={styles.cardFooter}>
+            <View style={[styles.statusPill, { backgroundColor: '#E8F5E9' }]}>
+              <Text style={[styles.statusText, { color: '#2E7D32' }]}>POOL ASSIGNED</Text>
+            </View>
+            <Text style={styles.priceText}>₹{totalEarnings.toFixed(0)}</Text>
+          </View>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={24} color="#ccc" />
+      </TouchableOpacity>
+    );
+  };
+
   const OrderCard = ({ order }) => (
     <TouchableOpacity 
       style={styles.card}
@@ -197,6 +227,19 @@ export default function HomeScreen({ navigation }) {
       <MaterialCommunityIcons name="chevron-right" size={24} color="#ccc" />
     </TouchableOpacity>
   );
+
+  // Group orders by pool
+  const groupedOrders = activeOrders.reduce((acc, order) => {
+    if (order.pool_id) {
+      if (!acc.pools[order.pool_id]) {
+        acc.pools[order.pool_id] = [];
+      }
+      acc.pools[order.pool_id].push(order);
+    } else {
+      acc.singles.push(order);
+    }
+    return acc;
+  }, { pools: {}, singles: [] });
 
   return (
     <View style={styles.mainContainer}>
@@ -245,13 +288,20 @@ export default function HomeScreen({ navigation }) {
         {/* Active Orders Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Current Tasks</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('PooledOrders')}>
-            <Text style={styles.seeAllText}>View Pool →</Text>
-          </TouchableOpacity>
         </View>
 
         {activeOrders.length > 0 ? (
-          activeOrders.map(order => <OrderCard key={order.id} order={order} />)
+          <>
+            {/* Render Pools first */}
+            {Object.entries(groupedOrders.pools).map(([poolId, orders]) => (
+              <PoolCard key={`pool-${poolId}`} poolId={poolId} orders={orders} />
+            ))}
+            
+            {/* Render Single Orders */}
+            {groupedOrders.singles.map(order => (
+              <OrderCard key={order.id} order={order} />
+            ))}
+          </>
         ) : (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="sleep" size={40} color="#ccc" style={{ marginBottom: 10 }} />

@@ -159,15 +159,41 @@ export const getPoolDeliveryOrders = async (poolId) => {
 
 export const updateOrderStatus = async (orderId, newStatus) => {
   try {
-    const response = await apiClient.patch(`/orders/${orderId}/status`, {
-      status: newStatus,
-      timestamp: new Date().toISOString(),
-    });
-    return { success: true, order: response.data.order };
+    let endpoint = '';
+    let method = 'post';
+    let data = {};
+
+    switch (newStatus) {
+      case 'ACCEPTED':
+        endpoint = `/driver/orders/${orderId}/accept`;
+        data = { accepted: true };
+        break;
+      case 'PICKED_UP':
+        endpoint = `/driver/orders/${orderId}/pickup`;
+        data = { picked_up: true };
+        break;
+      case 'IN_TRANSIT':
+        endpoint = `/driver/orders/${orderId}/in-transit`;
+        break;
+      case 'DELIVERED':
+        // Note: Delivery usually requires OTP, handled by verifyOTP or separate call
+        // If called without OTP, it might fail if backend enforces it
+        endpoint = `/driver/orders/${orderId}/deliver`; 
+        break;
+      default:
+        // Fallback for other statuses if any (or admin endpoints)
+        // But since we don't have a generic patch endpoint for drivers, we warn
+        console.warn(`No specific driver endpoint for status: ${newStatus}`);
+        return { success: false, message: 'Invalid status update' };
+    }
+
+    const response = await apiClient.post(endpoint, data);
+    return { success: true, order: response.data };
   } catch (error) {
+    console.error(`Error updating status to ${newStatus}:`, error);
     return {
       success: false,
-      message: error.response?.data?.message || 'Failed to update status',
+      message: error.response?.data?.detail || error.response?.data?.message || 'Failed to update status',
     };
   }
 };
@@ -176,29 +202,11 @@ export const updateOrderStatus = async (orderId, newStatus) => {
 
 /**
  * Update driver location
- * @param {number} latitude - GPS latitude
- * @param {number} longitude - GPS longitude
- * @param {number} totalDistance - Total distance in kilometers
+ * @deprecated Use WebSocketService instead
  */
 export const updateDriverLocation = async (latitude, longitude, totalDistance = 0) => {
-  try {
-    const driver = await getCurrentDriver();
-    const response = await apiClient.post('/tracking/update', {
-      subject_uuid: driver?.id || driver?.uuid,
-      subject_type: 'driver',
-      latitude: latitude,
-      longitude: longitude,
-      altitude: 0,
-      speed: 0,
-      heading: 0,
-      distance: totalDistance * 1000, // Convert km to meters
-      timestamp: new Date().toISOString(),
-    });
-    return { success: true };
-  } catch (error) {
-    console.error('Error updating location:', error);
-    return { success: false };
-  }
+  console.warn('updateDriverLocation is deprecated. Use WebSocketService.');
+  return { success: true };
 };
 
 // ==================== EARNINGS & REIMBURSEMENT ====================

@@ -1,5 +1,5 @@
 import * as Location from 'expo-location';
-import { updateDriverLocation } from '../api/client';
+// import { updateDriverLocation } from '../api/client'; // Removed as we use WebSocket now
 
 let locationSubscription = null;
 let lastPosition = null;
@@ -96,7 +96,7 @@ export const startLocationTracking = async () => {
         lastPosition = { latitude, longitude };
         
         // Send location to Fleetbase API with distance
-        updateDriverLocation(latitude, longitude, totalDistance);
+        // updateDriverLocation(latitude, longitude, totalDistance); // Removed: Using WebSocket for live tracking
         
         console.log(`📍 Location updated: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
       }

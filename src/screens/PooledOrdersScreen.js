@@ -1,102 +1,151 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
   TouchableOpacity,
-  Alert 
+  Alert,
+  RefreshControl
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { openGoogleMaps } from '../utils/navigation';
 import { startLocationTracking, stopLocationTracking } from '../utils/location';
+import { getAssignedOrders } from '../api/client';
+import PoolProgressBar from '../components/PoolProgressBar';
+import websocketService from '../services/websocket';
+import LocationTracker from '../services/LocationTracker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function PooledOrdersScreen({ route, navigation }) {
-  const [restaurants, setRestaurants] = useState([
-    {
-      id: '1',
-      sequence: 1,
-      name: 'Pizza Palace',
-      orderCount: 8,
-      address: '123 Main Street, Near City Mall',
-      latitude: 28.7041,
-      longitude: 77.1025,
-      distance: 1.2,
-      collected: false,
-    },
-    {
-      id: '2',
-      sequence: 2,
-      name: 'Burger Kingdom',
-      orderCount: 12,
-      address: '456 Oak Avenue, Food Court',
-      latitude: 28.7051,
-      longitude: 77.1035,
-      distance: 2.5,
-      collected: false,
-    },
-    {
-      id: '3',
-      sequence: 3,
-      name: 'Chinese Wok',
-      orderCount: 6,
-      address: '789 Pine Road, Market Area',
-      latitude: 28.7061,
-      longitude: 77.1045,
-      distance: 3.8,
-      collected: false,
-    },
-    {
-      id: '4',
-      sequence: 4,
-      name: 'South Indian Express',
-      orderCount: 10,
-      address: '321 Birch Lane, Temple Street',
-      latitude: 28.7071,
-      longitude: 77.1055,
-      distance: 4.2,
-      collected: false,
-    },
-    {
-      id: '5',
-      sequence: 5,
-      name: 'Tandoori Nights',
-      orderCount: 9,
-      address: '654 Cedar Drive, University Road',
-      latitude: 28.7081,
-      longitude: 77.1065,
-      distance: 5.1,
-      collected: false,
-    },
-  ]);
+  const [restaurants, setRestaurants] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const { poolId, orders: initialOrders } = route.params || {};
+
+  const processOrders = (ordersList) => {
+    if (!ordersList || ordersList.length === 0) return;
+
+    // Group orders by restaurant
+    const grouped = ordersList.reduce((acc, order) => {
+      const restId = order.restaurant_name; // Using name as ID for grouping
+      if (!acc[restId]) {
+        acc[restId] = {
+          id: restId,
+          name: order.restaurant_name,
+          address: order.pickup_address || 'Unknown Address',
+          latitude: order.pickup_lat || 0,
+          longitude: order.pickup_lng || 0,
+          orders: [],
+          restaurant_phone: order.restaurant_phone,
+          collected: false // Will calculate below
+        };
+      }
+      acc[restId].orders.push(order);
+      return acc;
+    }, {});
+
+    // Convert to array and add sequence
+    const restaurantList = Object.values(grouped).map((r, index) => {
+      // Check if all orders for this restaurant are picked up
+      const isCollected = r.orders.every(o => 
+        ['PICKED_UP', 'IN_TRANSIT', 'DELIVERED'].includes(o.status)
+      );
+      
+      console.log(`Restaurant ${r.name}: ${r.orders.length} orders, collected: ${isCollected}, statuses: ${r.orders.map(o => o.status).join(', ')}`);
+
+      return {
+        ...r,
+        sequence: index + 1,
+        orderCount: r.orders.length,
+        distance: 0, // TODO: Calculate distance
+        collected: isCollected
+      };
+    });
+
+    setRestaurants(restaurantList);
+  };
+
+  const loadData = async () => {
+    setRefreshing(true);
+    try {
+      // Add a small delay to ensure backend has committed changes
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Fetch latest orders from API to get updated status
+      const allOrders = await getAssignedOrders();
+      // Ensure loose comparison for poolId (string vs number)
+      const currentPoolOrders = allOrders.filter(o => o.pool_id == poolId);
+      
+      console.log(`🔄 Refreshing pool data: Found ${currentPoolOrders.length} orders for pool ${poolId}`);
+      
+      if (currentPoolOrders.length > 0) {
+        processOrders(currentPoolOrders);
+      } else {
+        // Fallback to initial params if API returns nothing (e.g. offline)
+        processOrders(initialOrders);
+      }
+    } catch (error) {
+      console.error("Failed to refresh orders", error);
+      // Fallback
+      processOrders(initialOrders);
+    }
+    setRefreshing(false);
+  };
+
+  // Refresh data when screen comes into focus (e.g. back from details)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔄 PooledOrdersScreen focused, refreshing data...');
+      loadData();
+    }, [poolId])
+  );
+
+  // Initialize WebSocket connection and location tracking on mount
+  useEffect(() => {
+    const initializeTracking = async () => {
+      try {
+        // Get driver data and connect WebSocket
+        const driverDataString = await AsyncStorage.getItem('driver_data');
+        if (driverDataString) {
+          const driverData = JSON.parse(driverDataString);
+          await websocketService.connect(driverData.id);
+          console.log('🌐 WebSocket connected for pool order tracking');
+        }
+
+        // Set pool ID for location tracking
+        LocationTracker.setCurrentOrder(poolId);
+        
+        // Start location tracking
+        await LocationTracker.startTracking();
+        console.log('📍 Location tracking started for pool order');
+      } catch (error) {
+        console.error('Failed to initialize tracking:', error);
+      }
+    };
+
+    initializeTracking();
+
+    // Cleanup on unmount
+    return () => {
+      console.log('🛑 PooledOrdersScreen unmounting, cleaning up...');
+      // Only stop tracking if we're leaving pool flow entirely
+      // (tracking will continue through delivery)
+    };
+  }, [poolId]);
 
   const totalOrders = restaurants.reduce((sum, r) => sum + r.orderCount, 0);
   const collectedCount = restaurants.filter(r => r.collected).length;
-  const allCollected = collectedCount === restaurants.length;
+  const allCollected = restaurants.length > 0 && collectedCount === restaurants.length;
 
-  // Start location tracking when screen mounts
-  useEffect(() => {
-    console.log('📍 Starting location tracking for pickup...');
-    startLocationTracking();
+  // No longer need the old startLocationTracking/stopLocationTracking effect
+  // LocationTracker is now handling everything
 
-    // Clean up tracking if user navigates away before finishing
-    return () => {
-      // Don't stop if proceeding to delivery, only if going back
-      if (!allCollected) {
-        console.log('📍 Pickup incomplete, stopping location tracking');
-        stopLocationTracking();
-      }
-    };
-  }, []);
-
-  const toggleCollected = (restaurantId) => {
-    setRestaurants(prev => 
-      prev.map(r => 
-        r.id === restaurantId ? { ...r, collected: !r.collected } : r
-      )
-    );
-
-    // TODO: Update status via API
-    // markRestaurantPickupComplete(restaurantId);
+  const handleRestaurantPress = (restaurant) => {
+    navigation.navigate('RestaurantPickup', {
+      restaurantName: restaurant.name,
+      orders: restaurant.orders,
+      poolId: poolId
+    });
   };
 
   const handleNavigate = (restaurant) => {
@@ -113,8 +162,10 @@ export default function PooledOrdersScreen({ route, navigation }) {
       return;
     }
 
-    // Navigate to delivery screen
-    navigation.navigate('DeliveryList', { poolId: route.params?.poolId });
+    // Navigate to delivery screen with the original orders
+    // We need to pass the flattened list of orders
+    const allOrders = restaurants.flatMap(r => r.orders);
+    navigation.navigate('DeliveryList', { poolId, orders: allOrders });
   };
 
   return (
@@ -130,15 +181,21 @@ export default function PooledOrdersScreen({ route, navigation }) {
         </View>
       </View>
 
+      <PoolProgressBar currentStage={allCollected ? 'IN_TRANSIT' : 'PICKUPS'} />
+
       {/* Restaurant List */}
-      <ScrollView style={styles.list}>
+      <ScrollView 
+        style={styles.list}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} />}
+      >
         {restaurants.map((restaurant) => (
-          <View 
+          <TouchableOpacity 
             key={restaurant.id}
             style={[
               styles.restaurantCard,
               restaurant.collected && styles.restaurantCardCollected
             ]}
+            onPress={() => handleRestaurantPress(restaurant)}
           >
             {/* Restaurant Info */}
             <View style={styles.restaurantHeader}>
@@ -157,39 +214,38 @@ export default function PooledOrdersScreen({ route, navigation }) {
                   </Text>
                 </View>
               </View>
+              <View style={styles.chevronContainer}>
+                 <Text style={{fontSize: 20, color: '#ccc'}}>›</Text>
+              </View>
             </View>
 
             {/* Actions */}
             <View style={styles.actions}>
               <TouchableOpacity 
                 style={styles.navigateButton}
-                onPress={() => handleNavigate(restaurant)}
+                onPress={(e) => {
+                  e.stopPropagation(); // Prevent triggering card press
+                  handleNavigate(restaurant);
+                }}
               >
                 <Text style={styles.navigateButtonText}>🗺️ Navigate</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
+              <View 
                 style={[
-                  styles.checkButton,
-                  restaurant.collected && styles.checkButtonActive
+                  styles.statusButton,
+                  restaurant.collected ? styles.statusButtonCollected : styles.statusButtonPending
                 ]}
-                onPress={() => toggleCollected(restaurant.id)}
               >
                 <Text style={[
-                  styles.checkButtonText,
-                  restaurant.collected && styles.checkButtonTextActive
+                  styles.statusButtonText,
+                  restaurant.collected && styles.statusButtonTextCollected
                 ]}>
-                  {restaurant.collected ? '✓ Collected' : 'Mark Collected'}
+                  {restaurant.collected ? '✓ Collected' : 'Tap to Collect'}
                 </Text>
-              </TouchableOpacity>
-            </View>
-
-            {restaurant.collected && (
-              <View style={styles.collectedBadge}>
-                <Text style={styles.collectedBadgeText}>✓ COLLECTED</Text>
               </View>
-            )}
-          </View>
+            </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
 
@@ -223,6 +279,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1A1A',
     padding: 20,
     paddingTop: 15,
+    paddingBottom: 35, // Added extra padding for overlap
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
@@ -310,6 +367,10 @@ const styles = StyleSheet.create({
     color: '#888',
     marginRight: 15,
   },
+  chevronContainer: {
+    justifyContent: 'center',
+    paddingLeft: 10,
+  },
   actions: {
     flexDirection: 'row',
   },
@@ -326,7 +387,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
-  checkButton: {
+  statusButton: {
     flex: 1,
     backgroundColor: '#f0f0f0',
     padding: 12,
@@ -335,31 +396,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
   },
-  checkButtonActive: {
+  statusButtonCollected: {
     backgroundColor: '#D4E157',
     borderColor: '#D4E157',
   },
-  checkButtonText: {
+  statusButtonPending: {
+    backgroundColor: '#fff',
+  },
+  statusButtonText: {
     color: '#666',
     fontWeight: '600',
     fontSize: 14,
   },
-  checkButtonTextActive: {
+  statusButtonTextCollected: {
     color: '#000',
-  },
-  collectedBadge: {
-    position: 'absolute',
-    top: 15,
-    right: 15,
-    backgroundColor: '#D4E157',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  collectedBadgeText: {
-    color: '#000',
-    fontSize: 11,
-    fontWeight: 'bold',
   },
   footer: {
     backgroundColor: '#fff',
