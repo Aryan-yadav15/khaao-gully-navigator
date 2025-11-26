@@ -15,7 +15,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { openGoogleMaps } from '../utils/navigation';
 import { stopLocationTracking, getTotalDistance } from '../utils/location';
 import PoolProgressBar from '../components/PoolProgressBar';
-import apiClient from '../api/client';
+import apiClient, { submitOrderEarnings } from '../api/client';
 import LocationTracker from '../services/LocationTracker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -180,8 +180,15 @@ export default function DeliveryListScreen({ route, navigation }) {
     LocationTracker.setCurrentOrder(null);
     console.log('🛑 Pool completed, location tracking stopped');
 
-    // TODO: Submit earnings with distance to API
-    // submitOrderEarnings(orderId, finalDistance, poolId);
+    // Submit earnings with distance to API
+    // If poolId exists, use it. Otherwise use the first order's ID.
+    const orderIdToSubmit = poolId ? null : (orders && orders.length > 0 ? orders[0].id : null);
+    
+    if (poolId || orderIdToSubmit) {
+      submitOrderEarnings(orderIdToSubmit, finalDistance, poolId)
+        .then(res => console.log('Earnings submitted:', res))
+        .catch(err => console.error('Failed to submit earnings:', err));
+    }
 
     Alert.alert(
       'All Deliveries Complete!',

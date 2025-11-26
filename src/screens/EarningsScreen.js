@@ -1,44 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
-  TouchableOpacity 
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl
 } from 'react-native';
+import { getDriverStats } from '../api/client';
 
 export default function EarningsScreen() {
   const [filter, setFilter] = useState('today'); // today, week, month
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [earningsData, setEarningsData] = useState({
+    today: { deliveries: 0, distance: 0, basePay: 0, distancePay: 0, bonus: 0, total: 0 },
+    week: { deliveries: 0, distance: 0, basePay: 0, distancePay: 0, bonus: 0, total: 0 },
+    month: { deliveries: 0, distance: 0, basePay: 0, distancePay: 0, bonus: 0, total: 0 },
+  });
 
-  // Mock data for demo
-  const earnings = {
-    today: {
-      deliveries: 12,
-      distance: 45.2,
-      basePay: 600, // ₹50 per delivery
-      distancePay: 452, // ₹10 per km
-      bonus: 0,
-      total: 1052,
-    },
-    week: {
-      deliveries: 45,
-      distance: 165.8,
-      basePay: 2250,
-      distancePay: 1658,
-      bonus: 300,
-      total: 4208,
-    },
-    month: {
-      deliveries: 180,
-      distance: 650.5,
-      basePay: 9000,
-      distancePay: 6505,
-      bonus: 1200,
-      total: 16705,
-    },
+  const fetchEarnings = async () => {
+    try {
+      const data = await getDriverStats();
+      if (data) {
+        setEarningsData(data);
+      }
+    } catch (error) {
+      console.error('Failed to load earnings:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const currentEarnings = earnings[filter];
+  useEffect(() => {
+    fetchEarnings();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchEarnings();
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#D4E157" />
+      </View>
+    );
+  }
+
+  const currentEarnings = earningsData[filter] || earningsData.today;
 
   return (
     <View style={styles.container}>
@@ -70,7 +83,12 @@ export default function EarningsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D4E157" />
+        }
+      >
         {/* Total Earnings Card */}
         <View style={styles.totalCard}>
           <Text style={styles.totalLabel}>Total Earnings</Text>
@@ -96,7 +114,7 @@ export default function EarningsScreen() {
               <View style={styles.breakdownLeft}>
                 <Text style={styles.breakdownLabel}>Base Pay</Text>
                 <Text style={styles.breakdownDetail}>
-                  ₹50 × {currentEarnings.deliveries} deliveries
+                  Earnings from deliveries
                 </Text>
               </View>
               <Text style={styles.breakdownAmount}>
@@ -125,7 +143,7 @@ export default function EarningsScreen() {
                   <View style={styles.breakdownLeft}>
                     <Text style={styles.breakdownLabel}>Bonus</Text>
                     <Text style={styles.breakdownDetail}>
-                      Performance bonus
+                      Performance bonus & incentives
                     </Text>
                   </View>
                   <Text style={[styles.breakdownAmount, styles.bonusAmount]}>
@@ -201,6 +219,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
+  },
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterContainer: {
     flexDirection: 'row',

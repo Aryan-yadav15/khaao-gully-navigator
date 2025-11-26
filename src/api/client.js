@@ -331,9 +331,9 @@ export const getDriverStats = async () => {
   } catch (error) {
     console.error('Error fetching driver stats:', error);
     return {
-      today: { earnings: 0, deliveries: 0, distance: 0 },
-      week: { earnings: 0, deliveries: 0, distance: 0 },
-      month: { earnings: 0, deliveries: 0, distance: 0 },
+      today: { deliveries: 0, distance: 0, basePay: 0, distancePay: 0, bonus: 0, total: 0 },
+      week: { deliveries: 0, distance: 0, basePay: 0, distancePay: 0, bonus: 0, total: 0 },
+      month: { deliveries: 0, distance: 0, basePay: 0, distancePay: 0, bonus: 0, total: 0 },
       total_completed: 0,
       total_cancelled: 0,
       rating: 0
