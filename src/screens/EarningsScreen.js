@@ -18,6 +18,14 @@ export default function EarningsScreen() {
     today: { deliveries: 0, distance: 0, basePay: 0, distancePay: 0, bonus: 0, total: 0 },
     week: { deliveries: 0, distance: 0, basePay: 0, distancePay: 0, bonus: 0, total: 0 },
     month: { deliveries: 0, distance: 0, basePay: 0, distancePay: 0, bonus: 0, total: 0 },
+    summary: {
+      total_pending_earnings: 0,
+      total_paid_earnings: 0,
+      lifetime_earnings: 0,
+      total_deliveries: 0,
+      last_payment_date: null,
+      last_payment_amount: 0
+    }
   });
 
   const fetchEarnings = async () => {
@@ -52,6 +60,7 @@ export default function EarningsScreen() {
   }
 
   const currentEarnings = earningsData[filter] || earningsData.today;
+  const summary = earningsData.summary || {};
 
   return (
     <View style={styles.container}>
@@ -91,87 +100,16 @@ export default function EarningsScreen() {
       >
         {/* Total Earnings Card */}
         <View style={styles.totalCard}>
-          <Text style={styles.totalLabel}>Total Earnings</Text>
-          <Text style={styles.totalAmount}>₹{currentEarnings.total.toFixed(2)}</Text>
+          <Text style={styles.totalLabel}>Total Earned (Lifetime)</Text>
+          <Text style={styles.totalAmount}>₹{summary.lifetime_earnings?.toFixed(2) || '0.00'}</Text>
           <View style={styles.statsRow}>
             <View style={styles.stat}>
-              <Text style={styles.statValue}>{currentEarnings.deliveries}</Text>
-              <Text style={styles.statLabel}>Deliveries</Text>
+              <Text style={styles.statValue}>{summary.total_deliveries || 0}</Text>
+              <Text style={styles.statLabel}>Total Deliveries</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statValue}>{currentEarnings.distance.toFixed(1)} km</Text>
-              <Text style={styles.statLabel}>Distance</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Earnings Breakdown */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💰 Earnings Breakdown</Text>
-
-          <View style={styles.breakdownCard}>
-            <View style={styles.breakdownRow}>
-              <View style={styles.breakdownLeft}>
-                <Text style={styles.breakdownLabel}>Base Pay</Text>
-                <Text style={styles.breakdownDetail}>
-                  Earnings from deliveries
-                </Text>
-              </View>
-              <Text style={styles.breakdownAmount}>
-                ₹{currentEarnings.basePay.toFixed(2)}
-              </Text>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.breakdownRow}>
-              <View style={styles.breakdownLeft}>
-                <Text style={styles.breakdownLabel}>Distance Pay</Text>
-                <Text style={styles.breakdownDetail}>
-                  ₹10 × {currentEarnings.distance.toFixed(1)} km
-                </Text>
-              </View>
-              <Text style={styles.breakdownAmount}>
-                ₹{currentEarnings.distancePay.toFixed(2)}
-              </Text>
-            </View>
-
-            {currentEarnings.bonus > 0 && (
-              <>
-                <View style={styles.divider} />
-                <View style={styles.breakdownRow}>
-                  <View style={styles.breakdownLeft}>
-                    <Text style={styles.breakdownLabel}>Bonus</Text>
-                    <Text style={styles.breakdownDetail}>
-                      Performance bonus & incentives
-                    </Text>
-                  </View>
-                  <Text style={[styles.breakdownAmount, styles.bonusAmount]}>
-                    +₹{currentEarnings.bonus.toFixed(2)}
-                  </Text>
-                </View>
-              </>
-            )}
-          </View>
-        </View>
-
-        {/* Fuel Reimbursement */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⛽ Fuel Reimbursement</Text>
-          <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Distance Traveled:</Text>
-              <Text style={styles.infoValue}>{currentEarnings.distance.toFixed(1)} km</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Rate:</Text>
-              <Text style={styles.infoValue}>₹10 per km</Text>
-            </View>
-            <View style={[styles.infoRow, styles.infoRowTotal]}>
-              <Text style={styles.infoLabelTotal}>Total Reimbursement:</Text>
-              <Text style={styles.infoValueTotal}>
-                ₹{(currentEarnings.distance * 10).toFixed(2)}
-              </Text>
+              <Text style={styles.statValue}>₹{summary.total_paid_earnings?.toFixed(2) || '0.00'}</Text>
+              <Text style={styles.statLabel}>Total Paid</Text>
             </View>
           </View>
         </View>
@@ -179,37 +117,65 @@ export default function EarningsScreen() {
         {/* Payment Status */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>💳 Payment Status</Text>
+          
+          {/* Pending Payment */}
+          <View style={[styles.paymentCard, { marginBottom: 15 }]}>
+            <View style={styles.paymentRow}>
+              <View style={[styles.statusBadge, { backgroundColor: '#FFF3E0' }]}>
+                <Text style={[styles.statusText, { color: '#FF9800' }]}>⏳ PENDING</Text>
+              </View>
+              <Text style={styles.paymentAmount}>₹{summary.total_pending_earnings?.toFixed(2) || '0.00'}</Text>
+            </View>
+            <Text style={styles.paymentNote}>
+              Amount to be paid in next cycle
+            </Text>
+          </View>
+
+          {/* Last Payment */}
           <View style={styles.paymentCard}>
             <View style={styles.paymentRow}>
               <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>✓ PAID</Text>
+                <Text style={styles.statusText}>✓ LAST PAID</Text>
               </View>
-              <Text style={styles.paymentAmount}>₹{currentEarnings.total.toFixed(2)}</Text>
+              <Text style={styles.paymentAmount}>
+                {summary.last_payment_amount ? `₹${summary.last_payment_amount.toFixed(2)}` : '₹0.00'}
+              </Text>
             </View>
             <Text style={styles.paymentNote}>
-              All earnings have been credited to your account
+              {summary.last_payment_date 
+                ? `Paid on ${new Date(summary.last_payment_date).toLocaleDateString()}`
+                : 'No payments received yet'}
             </Text>
           </View>
         </View>
 
-        {/* How Earnings Work */}
+        {/* Current Period Stats */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ℹ️ How Earnings Work</Text>
-          <View style={styles.helpCard}>
-            <Text style={styles.helpText}>
-              <Text style={styles.helpBold}>Base Pay:</Text> ₹50 per delivery
-            </Text>
-            <Text style={styles.helpText}>
-              <Text style={styles.helpBold}>Distance Pay:</Text> ₹10 per kilometer driven
-            </Text>
-            <Text style={styles.helpText}>
-              <Text style={styles.helpBold}>Bonus:</Text> Extra earnings for high performance
-            </Text>
-            <Text style={styles.helpText}>
-              <Text style={styles.helpBold}>Fuel Reimbursement:</Text> Included in distance pay
-            </Text>
+          <Text style={styles.sectionTitle}>📊 {filter === 'today' ? "Today's" : filter === 'week' ? "This Week's" : "This Month's"} Stats</Text>
+
+          <View style={styles.breakdownCard}>
+            <View style={styles.breakdownRow}>
+              <View style={styles.breakdownLeft}>
+                <Text style={styles.breakdownLabel}>Deliveries</Text>
+              </View>
+              <Text style={styles.breakdownAmount}>
+                {currentEarnings.deliveries}
+              </Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.breakdownRow}>
+              <View style={styles.breakdownLeft}>
+                <Text style={styles.breakdownLabel}>Earnings</Text>
+              </View>
+              <Text style={styles.breakdownAmount}>
+                ₹{currentEarnings.total.toFixed(2)}
+              </Text>
+            </View>
           </View>
         </View>
+
       </ScrollView>
     </View>
   );
