@@ -112,13 +112,34 @@ export default function RestaurantPickupScreen({ route, navigation }) {
               </View>
             </View>
             
-            {/* Items - Assuming order.items is available or we just show generic info */}
+            {/* Items */}
             <View style={styles.itemsContainer}>
-               {/* If items are available in order object, map them here. 
-                   For now, showing placeholder or raw data if available */}
-               <Text style={styles.itemText}>
-                 {order.items ? JSON.stringify(order.items) : 'View details in app'}
-               </Text>
+              {(() => {
+                // Parse items from items_json or items field
+                let itemsList = [];
+                const itemsData = order.items_json || order.items;
+                
+                if (Array.isArray(itemsData)) {
+                  itemsList = itemsData;
+                } else if (typeof itemsData === 'string') {
+                  try {
+                    itemsList = JSON.parse(itemsData);
+                  } catch (e) {
+                    console.error('Failed to parse items:', e);
+                  }
+                }
+                
+                if (itemsList.length > 0) {
+                  return itemsList.map((item, idx) => (
+                    <View key={idx} style={styles.itemRow}>
+                      <Text style={styles.itemQuantity}>{item.quantity}x</Text>
+                      <Text style={styles.itemName}>{item.name || item.dish_name}</Text>
+                    </View>
+                  ));
+                } else {
+                  return <Text style={styles.itemText}>No items found</Text>;
+                }
+              })()}
             </View>
           </View>
         ))}
@@ -247,6 +268,23 @@ const styles = StyleSheet.create({
   itemText: {
     color: '#555',
     fontSize: 14,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  itemQuantity: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: THEME.primary,
+    marginRight: 8,
+    minWidth: 30,
+  },
+  itemName: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
   },
   footer: {
     position: 'absolute',

@@ -324,9 +324,9 @@ export default function OrderDetailScreen({ route, navigation }) {
               <View key={index} style={styles.itemRow}>
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemQuantity}>{item.quantity}x</Text>
-                  <Text style={styles.itemName}>{item.name}</Text>
+                  <Text style={styles.itemName}>{item.name || item.dish_name}</Text>
                 </View>
-                <Text style={styles.itemPrice}>₹{item.price}</Text>
+                <Text style={styles.itemPrice}>₹{((item.price || item.subtotal) / 100).toFixed(2)}</Text>
               </View>
             ))}
             <View style={styles.divider} />

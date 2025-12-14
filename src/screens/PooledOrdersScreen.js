@@ -25,13 +25,13 @@ export default function PooledOrdersScreen({ route, navigation }) {
   const processOrders = (ordersList) => {
     if (!ordersList || ordersList.length === 0) return;
 
-    // Group orders by restaurant
+    // Group orders by restaurant_id (more reliable than name)
     const grouped = ordersList.reduce((acc, order) => {
-      const restId = order.restaurant_name; // Using name as ID for grouping
+      const restId = order.restaurant_id || order.restaurant_name || 'unknown';
       if (!acc[restId]) {
         acc[restId] = {
-          id: restId,
-          name: order.restaurant_name,
+          id: order.restaurant_id || restId,
+          name: order.restaurant_name || 'Unknown Restaurant',
           address: order.pickup_address || 'Unknown Address',
           latitude: order.pickup_lat || 0,
           longitude: order.pickup_lng || 0,

@@ -69,35 +69,66 @@ export default function DeliveryListScreen({ route, navigation }) {
 
   useEffect(() => {
     if (orders && orders.length > 0) {
-      const customerList = orders.map(order => {
-        // Format items
+      // Group orders by customer phone
+      const groupedByCustomer = {};
+      
+      orders.forEach(order => {
+        const customerKey = order.customer_phone;
+        
+        // Format items for this order (handle both items and items_json)
         let formattedItems = [];
-        if (Array.isArray(order.items)) {
-          formattedItems = order.items.map(item => `${item.quantity}x ${item.name}`);
-        } else if (typeof order.items === 'string') {
+        const itemsData = order.items_json || order.items;
+        
+        if (Array.isArray(itemsData)) {
+          formattedItems = itemsData.map(item => `${item.quantity}x ${item.name}`);
+        } else if (typeof itemsData === 'string') {
           try {
-            const parsed = JSON.parse(order.items);
+            const parsed = JSON.parse(itemsData);
             formattedItems = parsed.map(item => `${item.quantity}x ${item.name}`);
           } catch (e) {
             formattedItems = ['Items info unavailable'];
           }
         }
-
-        return {
-          id: order.id,
-          name: order.customer_name,
-          phone: order.customer_phone,
-          address: order.delivery_address,
-          latitude: order.delivery_lat,
-          longitude: order.delivery_lng,
-          distance: 0, // TODO: Calculate distance
-          orderNumber: `#${order.id}`,
-          items: formattedItems,
-          delivered: order.status === 'DELIVERED',
-          requiresOTP: true,
-          otp: order.otp // Store OTP for verification
-        };
+        
+        if (!groupedByCustomer[customerKey]) {
+          groupedByCustomer[customerKey] = {
+            id: order.id, // Use first order ID as primary
+            name: order.customer_name,
+            phone: order.customer_phone,
+            address: order.delivery_address,
+            latitude: order.delivery_lat,
+            longitude: order.delivery_lng,
+            distance: 0,
+            orderNumbers: [],
+            orderIds: [],
+            items: [],
+            totalAmount: 0,
+            delivered: order.status === 'DELIVERED',
+            requiresOTP: true,
+            otps: [] // Store all OTPs
+          };
+        }
+        
+        // Add order data to grouped customer
+        groupedByCustomer[customerKey].orderNumbers.push(`#${order.id}`);
+        groupedByCustomer[customerKey].orderIds.push(order.id);
+        groupedByCustomer[customerKey].items.push(...formattedItems);
+        groupedByCustomer[customerKey].totalAmount += parseFloat(order.total_amount || order.order_total || 0);
+        groupedByCustomer[customerKey].otps.push(order.otp);
+        
+        // If any order is delivered, mark customer as delivered
+        if (order.status === 'DELIVERED') {
+          groupedByCustomer[customerKey].delivered = true;
+        }
       });
+      
+      // Convert to array
+      const customerList = Object.values(groupedByCustomer).map(customer => ({
+        ...customer,
+        orderNumber: customer.orderNumbers.join(', '),
+        otp: customer.otps[0] // Use first OTP (any will work on backend)
+      }));
+      
       setCustomers(customerList);
     }
   }, [orders]);
@@ -129,23 +160,32 @@ export default function DeliveryListScreen({ route, navigation }) {
   };
 
   const verifyOTPAndDeliver = async () => {
-    if (otpInput !== selectedCustomer.otp) {
+    // Check if OTP matches any of the customer's OTPs
+    const validOTP = selectedCustomer.otps.some(otp => otp === otpInput);
+    
+    if (!validOTP) {
       Alert.alert('Invalid OTP', 'Please enter the correct 4-digit OTP provided by the customer.');
       return;
     }
 
     try {
-      // Call API to mark order as delivered
+      // Call API to mark order as delivered (backend will handle all customer orders)
       await apiClient.post(`/driver/orders/${selectedCustomer.id}/deliver`, {
         otp: otpInput,
         delivery_notes: null
       });
 
-      // Update local state
+      // Update local state - mark this customer card as delivered
       confirmDelivery(selectedCustomer.id);
       setShowOTPModal(false);
       setSelectedCustomer(null);
-      Alert.alert('Success', 'Order delivered successfully!');
+      
+      const orderCount = selectedCustomer.orderIds.length;
+      const successMessage = orderCount > 1 
+        ? `All ${orderCount} orders for ${selectedCustomer.name} delivered successfully!`
+        : 'Order delivered successfully!';
+      
+      Alert.alert('Success', successMessage);
     } catch (error) {
       console.error('Delivery error:', error);
       Alert.alert('Error', error.response?.data?.detail || 'Failed to mark as delivered');
@@ -282,6 +322,13 @@ export default function DeliveryListScreen({ route, navigation }) {
                   {customer.items.map((item, idx) => (
                     <Text key={idx} style={styles.itemText}>• {item}</Text>
                   ))}
+                </View>
+
+                {/* Total Amount */}
+                <View style={styles.totalAmountContainer}>
+                  <MaterialCommunityIcons name="currency-inr" size={18} color={THEME.accent} />
+                  <Text style={styles.totalAmountLabel}>Total to collect: </Text>
+                  <Text style={styles.totalAmountValue}>₹{customer.totalAmount.toFixed(2)}</Text>
                 </View>
 
                 {/* Actions */}
@@ -617,5 +664,24 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: '#666',
     fontSize: 14,
+  },
+  totalAmountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  totalAmountLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 5,
+  },
+  totalAmountValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: THEME.accent,
   },
 });
