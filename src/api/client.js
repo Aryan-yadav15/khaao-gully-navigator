@@ -198,6 +198,23 @@ export const updateOrderStatus = async (orderId, newStatus) => {
   }
 };
 
+/**
+ * Reject an order that was assigned (driver didn't respond in time)
+ */
+export const rejectOrder = async (orderId) => {
+  try {
+    const response = await apiClient.post(`/driver/orders/${orderId}/reject`);
+    console.log('✅ Order rejected:', orderId);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error('❌ Error rejecting order:', error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Failed to reject order',
+    };
+  }
+};
+
 // ==================== LOCATION TRACKING ====================
 
 /**

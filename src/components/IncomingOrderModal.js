@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   Animated 
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function IncomingOrderModal({ visible, order, onAccept, onTimeout }) {
+export default function IncomingOrderModal({ visible, order, onAccept, onTimeout, onView }) {
   const [timer, setTimer] = useState(30); // 30 seconds auto-accept
   const [scaleAnim] = useState(new Animated.Value(0));
 
@@ -68,15 +69,23 @@ export default function IncomingOrderModal({ visible, order, onAccept, onTimeout
         >
           {/* Order Type Badge */}
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>
-              {isPooled ? '📦 POOLED ORDER' : '🍽️ SINGLE ORDER'}
-            </Text>
+            {isPooled ? (
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <MaterialCommunityIcons name="layers" size={16} color="#fff" style={{marginRight: 6}} />
+                <Text style={styles.badgeText}>POOLED ORDER</Text>
+              </View>
+            ) : (
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <MaterialCommunityIcons name="silverware-fork-knife" size={16} color="#fff" style={{marginRight: 6}} />
+                <Text style={styles.badgeText}>SINGLE ORDER</Text>
+              </View>
+            )}
           </View>
 
           {/* Timer */}
           <View style={styles.timerContainer}>
             <Text style={styles.timerText}>{timer}s</Text>
-            <Text style={styles.timerLabel}>Auto-accepting...</Text>
+            <Text style={styles.timerLabel}>Auto-rejecting if no response...</Text>
           </View>
 
           {/* Restaurant Info */}
@@ -115,19 +124,36 @@ export default function IncomingOrderModal({ visible, order, onAccept, onTimeout
             <Text style={styles.timeValue}>{order.pickupTime}</Text>
           </View>
 
+          {/* View Button */}
+          {onView && (
+            <TouchableOpacity 
+              style={styles.viewButton}
+              onPress={onView}
+              activeOpacity={0.8}
+            >
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <MaterialCommunityIcons name="eye" size={18} color="#fff" style={{marginRight: 8}} />
+                <Text style={styles.viewButtonText}>VIEW DETAILS</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
           {/* Accept Button */}
           <TouchableOpacity 
             style={styles.acceptButton}
             onPress={onAccept}
             activeOpacity={0.8}
           >
-            <Text style={styles.acceptButtonText}>✓ ACCEPT NOW</Text>
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <MaterialCommunityIcons name="check" size={20} color="#000" style={{marginRight: 8}} />
+              <Text style={styles.acceptButtonText}>ACCEPT NOW</Text>
+            </View>
           </TouchableOpacity>
 
           <Text style={styles.footerNote}>
             {isPooled 
               ? 'Collect orders from all restaurants, then deliver'
-              : 'Order will be auto-accepted in {timer} seconds'}
+              : `Order will be auto-rejected in ${timer} seconds if not responded`}
           </Text>
         </Animated.View>
       </View>
@@ -243,6 +269,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  viewButton: {
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  viewButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    letterSpacing: 1,
   },
   acceptButton: {
     width: '100%',

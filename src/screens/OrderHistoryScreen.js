@@ -6,6 +6,7 @@ import {
   ScrollView, 
   TouchableOpacity 
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function OrderHistoryScreen() {
   const [filter, setFilter] = useState('today'); // today, week, month
@@ -135,7 +136,7 @@ export default function OrderHistoryScreen() {
       <ScrollView style={styles.list}>
         {filteredOrders.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📦</Text>
+            <MaterialCommunityIcons name="package-variant" size={64} color="#ccc" style={{ marginBottom: 15 }} />
             <Text style={styles.emptyText}>No deliveries found</Text>
           </View>
         ) : (
@@ -145,11 +146,21 @@ export default function OrderHistoryScreen() {
               <View style={styles.orderHeader}>
                 <View>
                   <View style={styles.orderTypeRow}>
-                    <Text style={styles.orderType}>
-                      {order.type === 'pooled' ? '📦 Pooled' : '🍽️ Single'}
-                    </Text>
+                    <View style={{flexDirection: 'row', alignItems: 'center', marginRight: 10}}>
+                      {order.type === 'pooled' ? (
+                        <MaterialCommunityIcons name="layers" size={16} color="#333" style={{marginRight: 6}} />
+                      ) : (
+                        <MaterialCommunityIcons name="silverware-fork-knife" size={16} color="#333" style={{marginRight: 6}} />
+                      )}
+                      <Text style={styles.orderType}>
+                        {order.type === 'pooled' ? 'Pooled' : 'Single'}
+                      </Text>
+                    </View>
                     <View style={styles.statusBadge}>
-                      <Text style={styles.statusText}>✓ {order.status}</Text>
+                      <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                        <MaterialCommunityIcons name="check" size={10} color="#4CAF50" style={{marginRight: 4}} />
+                        <Text style={styles.statusText}>{order.status}</Text>
+                      </View>
                     </View>
                   </View>
                   <Text style={styles.orderDate}>

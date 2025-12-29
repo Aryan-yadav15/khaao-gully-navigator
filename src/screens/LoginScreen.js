@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { loginDriver } from '../api/client';
 
 export default function LoginScreen({ navigation }) {
@@ -61,7 +62,9 @@ export default function LoginScreen({ navigation }) {
       <View style={styles.content}>
         {/* Logo/Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>🍽️</Text>
+          <View style={{marginBottom: 20}}>
+            <MaterialCommunityIcons name="silverware-fork-knife" size={64} color="#D4E157" />
+          </View>
           <Text style={styles.title}>Khaao Gully</Text>
           <Text style={styles.subtitle}>Navigator Driver Login</Text>
         </View>

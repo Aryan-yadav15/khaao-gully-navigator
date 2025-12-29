@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Alert 
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAssignedOrders, getCurrentDriver } from '../api/fleetbase';
@@ -357,7 +358,7 @@ export default function HomeScreen({ navigation }) {
           style={[styles.actionButton, styles.primaryAction]}
           onPress={() => navigation.navigate('PooledOrders')}
         >
-          <Text style={styles.actionIcon}>📦</Text>
+          <MaterialCommunityIcons name="package-variant" size={24} color="#000" style={{marginBottom: 8}} />
           <Text style={styles.actionText}>View Pooled Orders</Text>
         </TouchableOpacity>
 
@@ -365,7 +366,7 @@ export default function HomeScreen({ navigation }) {
           style={styles.actionButton}
           onPress={() => navigation.navigate('OrderHistory')}
         >
-          <Text style={styles.actionIcon}>📜</Text>
+          <MaterialCommunityIcons name="history" size={24} color="#000" style={{marginBottom: 8}} />
           <Text style={styles.actionText}>Order History</Text>
         </TouchableOpacity>
 
@@ -373,7 +374,7 @@ export default function HomeScreen({ navigation }) {
           style={styles.actionButton}
           onPress={() => navigation.navigate('Earnings')}
         >
-          <Text style={styles.actionIcon}>💰</Text>
+          <MaterialCommunityIcons name="wallet" size={24} color="#000" style={{marginBottom: 8}} />
           <Text style={styles.actionText}>View Earnings Details</Text>
         </TouchableOpacity>
 
@@ -381,7 +382,7 @@ export default function HomeScreen({ navigation }) {
           style={styles.actionButton}
           onPress={() => navigation.navigate('Profile')}
         >
-          <Text style={styles.actionIcon}>👤</Text>
+          <MaterialCommunityIcons name="account" size={24} color="#000" style={{marginBottom: 8}} />
           <Text style={styles.actionText}>Profile & Settings</Text>
         </TouchableOpacity>
       </View>

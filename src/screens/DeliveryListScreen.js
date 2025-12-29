@@ -252,7 +252,10 @@ export default function DeliveryListScreen({ route, navigation }) {
       
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🚚 Customer Deliveries</Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 5}}>
+          <MaterialCommunityIcons name="truck-delivery" size={24} color="#fff" style={{marginRight: 10}} />
+          <Text style={[styles.headerTitle, {marginBottom: 0}]}>Customer Deliveries</Text>
+        </View>
         <View style={styles.headerStats}>
            <Text style={styles.headerSubtitle}>{deliveredCount} / {totalCount} Completed</Text>
         </View>
@@ -378,11 +381,16 @@ export default function DeliveryListScreen({ route, navigation }) {
           onPress={handleCompleteAllDeliveries}
           disabled={!allDelivered}
         >
-          <Text style={styles.completeButtonText}>
-            {allDelivered
-              ? '✓ Finish & View Earnings'
-              : `Complete remaining deliveries (${totalCount - deliveredCount})`}
-          </Text>
+          {allDelivered ? (
+            <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'center'}}>
+              <MaterialCommunityIcons name="check" size={20} color="#fff" style={{marginRight: 8}} />
+              <Text style={styles.completeButtonText}>Finish & View Earnings</Text>
+            </View>
+          ) : (
+            <Text style={styles.completeButtonText}>
+              {`Complete remaining deliveries (${totalCount - deliveredCount})`}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
 

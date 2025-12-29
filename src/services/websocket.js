@@ -18,6 +18,7 @@ class WebSocketService {
     this.eventListeners = {
       order_assigned: [],
       order_cancelled: [],
+      order_unassigned: [],
       connection_status: [],
       error: []
     };
@@ -98,6 +99,10 @@ class WebSocketService {
 
         case 'order_cancelled':
           this.notifyListeners('order_cancelled', message.data);
+          break;
+
+        case 'order_unassigned':
+          this.notifyListeners('order_unassigned', message.data);
           break;
 
         case 'connection_ack':

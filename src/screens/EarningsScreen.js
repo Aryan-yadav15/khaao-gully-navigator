@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getDriverStats } from '../api/client';
 
 export default function EarningsScreen() {
@@ -116,13 +117,17 @@ export default function EarningsScreen() {
 
         {/* Payment Status */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💳 Payment Status</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 12}}>
+            <MaterialCommunityIcons name="credit-card" size={20} color="#000" style={{marginRight: 8}} />
+            <Text style={[styles.sectionTitle, {marginBottom: 0}]}>Payment Status</Text>
+          </View>
           
           {/* Pending Payment */}
           <View style={[styles.paymentCard, { marginBottom: 15 }]}>
             <View style={styles.paymentRow}>
-              <View style={[styles.statusBadge, { backgroundColor: '#FFF3E0' }]}>
-                <Text style={[styles.statusText, { color: '#FF9800' }]}>⏳ PENDING</Text>
+              <View style={[styles.statusBadge, { backgroundColor: '#FFF3E0', flexDirection: 'row', alignItems: 'center' }]}>
+                <MaterialCommunityIcons name="clock-outline" size={12} color="#FF9800" style={{marginRight: 4}} />
+                <Text style={[styles.statusText, { color: '#FF9800' }]}>PENDING</Text>
               </View>
               <Text style={styles.paymentAmount}>₹{summary.total_pending_earnings?.toFixed(2) || '0.00'}</Text>
             </View>
@@ -134,8 +139,9 @@ export default function EarningsScreen() {
           {/* Last Payment */}
           <View style={styles.paymentCard}>
             <View style={styles.paymentRow}>
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>✓ LAST PAID</Text>
+              <View style={[styles.statusBadge, { flexDirection: 'row', alignItems: 'center' }]}>
+                <MaterialCommunityIcons name="check-circle" size={12} color="#4CAF50" style={{marginRight: 4}} />
+                <Text style={styles.statusText}>LAST PAID</Text>
               </View>
               <Text style={styles.paymentAmount}>
                 {summary.last_payment_amount ? `₹${summary.last_payment_amount.toFixed(2)}` : '₹0.00'}
@@ -151,7 +157,10 @@ export default function EarningsScreen() {
 
         {/* Current Period Stats */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊 {filter === 'today' ? "Today's" : filter === 'week' ? "This Week's" : "This Month's"} Stats</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 12}}>
+            <MaterialCommunityIcons name="chart-bar" size={20} color="#000" style={{marginRight: 8}} />
+            <Text style={[styles.sectionTitle, {marginBottom: 0}]}>{filter === 'today' ? "Today's" : filter === 'week' ? "This Week's" : "This Month's"} Stats</Text>
+          </View>
 
           <View style={styles.breakdownCard}>
             <View style={styles.breakdownRow}>

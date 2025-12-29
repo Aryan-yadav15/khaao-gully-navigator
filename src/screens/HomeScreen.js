@@ -11,9 +11,10 @@ import {
   StatusBar
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { getAssignedOrders, getCurrentDriver, getDriverStats, toggleOnlineStatus as toggleOnlineAPI } from '../api/client';
+import { getAssignedOrders, getCurrentDriver, getDriverStats, toggleOnlineStatus as toggleOnlineAPI, rejectOrder } from '../api/client';
 import websocketService from '../services/websocket';
 import LocationTracker from '../services/LocationTracker';
+import IncomingOrderModal from '../components/IncomingOrderModal';
 
 // Theme Constants
 const THEME = {
@@ -32,6 +33,8 @@ export default function HomeScreen({ navigation }) {
   const [driver, setDriver] = useState(null);
   const [activeOrders, setActiveOrders] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [incomingOrder, setIncomingOrder] = useState(null);
 
   // Check if driver is verified
   const isVerified = driver?.status === 'ACTIVE' || driver?.status === 'APPROVED' || driver?.is_verified === true; 
@@ -54,6 +57,7 @@ export default function HomeScreen({ navigation }) {
     return () => {
       websocketService.off('order_assigned', handleOrderAssigned);
       websocketService.off('order_cancelled', handleOrderCancelled);
+      websocketService.off('order_unassigned', handleOrderUnassigned);
       websocketService.off('connection_status', handleConnectionStatus);
       websocketService.off('error', handleWSError);
     };
@@ -66,6 +70,7 @@ export default function HomeScreen({ navigation }) {
       await websocketService.connect(driverData.id);
       websocketService.on('order_assigned', handleOrderAssigned);
       websocketService.on('order_cancelled', handleOrderCancelled);
+      websocketService.on('order_unassigned', handleOrderUnassigned);
       websocketService.on('connection_status', handleConnectionStatus);
       websocketService.on('error', handleWSError);
     } catch (error) {
@@ -75,18 +80,89 @@ export default function HomeScreen({ navigation }) {
 
   const handleOrderAssigned = (data) => {
     LocationTracker.setCurrentOrder(data.order_id || data.id);
-    Alert.alert(
-      'New Order Assigned',
-      `Order #${data.order_id || data.id} has been assigned to you.`,
-      [
-        { text: 'View', onPress: () => { loadDashboard(); navigation.navigate('OrderDetail', { orderId: data.order_id || data.id }); } },
-        { text: 'Close', onPress: () => loadDashboard() }
-      ]
-    );
+    
+    // Check if there are active orders to determine if this is pooled
+    // If we already have orders and a new one comes in, it's likely pooled
+    const isPooledOrder = activeOrders.length > 0 || data.is_pooled || data.pool_id;
+    
+    // Format order data for modal
+    const formattedOrder = {
+      id: data.order_id || data.id,
+      orderIds: data.order_ids || [data.order_id || data.id], // All order IDs in this assignment
+      type: isPooledOrder ? 'pooled' : 'single',
+      restaurantName: data.restaurant_name || 'Restaurant',
+      restaurantCount: data.restaurant_count || 1,
+      restaurants: data.restaurants || [data.restaurant_name],
+      earnings: parseFloat((data.earnings || data.driver_earnings || data.delivery_fee || 0).toFixed(2)),
+      distance: parseFloat((data.distance_km || data.distance || 0).toFixed(2)),
+      orderCount: data.order_count || 1,
+      pickupTime: data.pickup_time || 'ASAP',
+    };
+    
+    setIncomingOrder(formattedOrder);
+    setShowOrderModal(true);
+  };
+
+  const handleAcceptOrder = async () => {
+    setShowOrderModal(false);
+    // Refresh data first to load the new orders
+    await loadDashboard();
+    // Small delay to ensure data is loaded
+    setTimeout(() => {
+      navigation.navigate('PooledOrders');
+    }, 500);
+  };
+
+  const handleViewOrder = () => {
+    // Just close modal and stay on home screen
+    // Driver can see active orders and navigate when ready
+    setShowOrderModal(false);
+    loadDashboard();
+  };
+
+  const handleOrderTimeout = async () => {
+    // Auto-reject after 30 seconds (driver didn't respond)
+    if (incomingOrder && incomingOrder.orderIds) {
+      console.log('⏰ Auto-rejecting orders:', incomingOrder.orderIds);
+      
+      // Reject all orders in this assignment
+      const rejectPromises = incomingOrder.orderIds.map(orderId => 
+        rejectOrder(orderId)
+      );
+      
+      const results = await Promise.all(rejectPromises);
+      
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.length - successCount;
+      
+      console.log(`✅ Auto-rejected ${successCount} orders, ${failCount} failed`);
+      
+      Alert.alert(
+        'Orders Rejected',
+        `You did not respond in time. ${successCount} order(s) have been unassigned.`
+      );
+    }
+    setShowOrderModal(false);
+    loadDashboard();
   };
 
   const handleOrderCancelled = (data) => {
     Alert.alert('Order Cancelled', `Order #${data.order_id} has been cancelled.`);
+    loadDashboard();
+  };
+
+  const handleOrderUnassigned = (data) => {
+    console.log('🔄 Order unassigned:', data.order_id);
+    Alert.alert(
+      'Order Unassigned',
+      `Order #${data.order_id} has been unassigned by admin.\n${data.reason || ''}`,
+      [{ text: 'OK', onPress: () => loadDashboard() }]
+    );
+    // Close modal if it's showing this order
+    if (incomingOrder && incomingOrder.id === data.order_id) {
+      setShowOrderModal(false);
+      setIncomingOrder(null);
+    }
     loadDashboard();
   };
 
@@ -191,7 +267,7 @@ export default function HomeScreen({ navigation }) {
             <View style={[styles.statusPill, { backgroundColor: '#E8F5E9' }]}>
               <Text style={[styles.statusText, { color: '#2E7D32' }]}>POOL ASSIGNED</Text>
             </View>
-            <Text style={styles.priceText}>₹{totalEarnings.toFixed(0)}</Text>
+            <Text style={styles.priceText}>₹{parseFloat(totalEarnings || 0).toFixed(2)}</Text>
           </View>
         </View>
         <MaterialCommunityIcons name="chevron-right" size={24} color="#ccc" />
@@ -216,7 +292,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.statusPill}>
             <Text style={styles.statusText}>{order.status.replace('_', ' ')}</Text>
           </View>
-          <Text style={styles.priceText}>₹{order.driver_earnings?.toFixed(0) || '0'}</Text>
+          <Text style={styles.priceText}>₹{parseFloat(order.driver_earnings || 0).toFixed(2)}</Text>
         </View>
       </View>
       {order.status === 'ASSIGNED' && (
@@ -271,7 +347,7 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.headerEarningsCard}>
           <View style={styles.headerEarningsItem}>
             <Text style={styles.headerEarningsLabel}>Today's Earnings</Text>
-            <Text style={styles.headerEarningsValue}>₹{stats.todayEarnings}</Text>
+            <Text style={styles.headerEarningsValue}>₹{parseFloat(stats.todayEarnings || 0).toFixed(2)}</Text>
           </View>
           <View style={styles.headerVerticalDivider} />
           <View style={styles.headerEarningsItem}>
@@ -332,7 +408,7 @@ export default function HomeScreen({ navigation }) {
                     : 'Delivered'}
                 </Text>
               </View>
-              <Text style={styles.historyAmount}>₹{order.driver_earnings?.toFixed(0) || '0'}</Text>
+              <Text style={styles.historyAmount}>₹{parseFloat(order.driver_earnings || 0).toFixed(2)}</Text>
             </View>
           ))
         ) : (
@@ -369,6 +445,15 @@ export default function HomeScreen({ navigation }) {
           <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" style={{ marginLeft: 5 }} />
         </TouchableOpacity>
       )}
+
+      {/* Incoming Order Modal */}
+      <IncomingOrderModal
+        visible={showOrderModal}
+        order={incomingOrder}
+        onAccept={handleAcceptOrder}
+        onTimeout={handleOrderTimeout}
+        onView={handleViewOrder}
+      />
     </View>
   );
 }

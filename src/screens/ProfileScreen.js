@@ -8,6 +8,7 @@ import {
   Linking,
   Alert 
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { logoutDriver } from '../api/client';
 
 export default function ProfileScreen({ navigation }) {
@@ -78,7 +79,10 @@ export default function ProfileScreen({ navigation }) {
         </View>
         <Text style={styles.name}>{driver.name}</Text>
         <View style={styles.ratingContainer}>
-          <Text style={styles.ratingText}>⭐ {driver.rating}</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <MaterialCommunityIcons name="star" size={16} color="#FFD700" style={{marginRight: 4}} />
+            <Text style={styles.ratingText}>{driver.rating}</Text>
+          </View>
           <Text style={styles.ratingSubtext}>({driver.totalDeliveries} deliveries)</Text>
         </View>
       </View>
@@ -88,12 +92,18 @@ export default function ProfileScreen({ navigation }) {
         <Text style={styles.sectionTitle}>Contact Information</Text>
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>📞 Phone</Text>
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <MaterialCommunityIcons name="phone" size={16} color="#666" style={{marginRight: 8}} />
+              <Text style={styles.infoLabel}>Phone</Text>
+            </View>
             <Text style={styles.infoValue}>{driver.phone}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>📧 Email</Text>
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <MaterialCommunityIcons name="email" size={16} color="#666" style={{marginRight: 8}} />
+              <Text style={styles.infoLabel}>Email</Text>
+            </View>
             <Text style={styles.infoValue}>{driver.email}</Text>
           </View>
         </View>

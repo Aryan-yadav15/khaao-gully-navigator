@@ -8,6 +8,7 @@ import {
   Alert,
   RefreshControl
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { openGoogleMaps } from '../utils/navigation';
 import { startLocationTracking, stopLocationTracking } from '../utils/location';
@@ -172,7 +173,10 @@ export default function PooledOrdersScreen({ route, navigation }) {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🍽️ Restaurant Pickups</Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 10}}>
+          <MaterialCommunityIcons name="silverware-fork-knife" size={24} color="#000" style={{marginRight: 10}} />
+          <Text style={[styles.headerTitle, {marginBottom: 0}]}>Restaurant Pickups</Text>
+        </View>
         <View style={styles.progressContainer}>
           <Text style={styles.progressText}>
             {collectedCount} / {restaurants.length} collected
@@ -206,9 +210,10 @@ export default function PooledOrdersScreen({ route, navigation }) {
                 <Text style={styles.restaurantName}>{restaurant.name}</Text>
                 <Text style={styles.restaurantAddress}>{restaurant.address}</Text>
                 <View style={styles.metaRow}>
-                  <Text style={styles.metaText}>
-                    📦 {restaurant.orderCount} orders
-                  </Text>
+                  <View style={{flexDirection: 'row', alignItems: 'center', marginRight: 12}}>
+                    <Package size={14} color="#666" style={{marginRight: 4}} />
+                    <Text style={styles.metaText}>{restaurant.orderCount} orders</Text>
+                  </View>
                   <Text style={styles.metaText}>
                     📍 {restaurant.distance} km away
                   </Text>
@@ -228,7 +233,10 @@ export default function PooledOrdersScreen({ route, navigation }) {
                   handleNavigate(restaurant);
                 }}
               >
-                <Text style={styles.navigateButtonText}>🗺️ Navigate</Text>
+                <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                  <MaterialCommunityIcons name="navigation" size={14} color="#fff" style={{marginRight: 6}} />
+                  <Text style={styles.navigateButtonText}>Navigate</Text>
+                </View>
               </TouchableOpacity>
 
               <View 
@@ -237,12 +245,14 @@ export default function PooledOrdersScreen({ route, navigation }) {
                   restaurant.collected ? styles.statusButtonCollected : styles.statusButtonPending
                 ]}
               >
-                <Text style={[
-                  styles.statusButtonText,
-                  restaurant.collected && styles.statusButtonTextCollected
-                ]}>
-                  {restaurant.collected ? '✓ Collected' : 'Tap to Collect'}
-                </Text>
+                {restaurant.collected ? (
+                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                    <MaterialCommunityIcons name="check" size={14} color="#4CAF50" style={{marginRight: 4}} />
+                    <Text style={[styles.statusButtonText, styles.statusButtonTextCollected]}>Collected</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.statusButtonText}>Tap to Collect</Text>
+                )}
               </View>
             </View>
           </TouchableOpacity>

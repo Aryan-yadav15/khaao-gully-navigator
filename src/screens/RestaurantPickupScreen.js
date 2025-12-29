@@ -106,7 +106,10 @@ export default function RestaurantPickupScreen({ route, navigation }) {
         {orders.map((order, index) => (
           <View key={order.id || index} style={styles.orderCard}>
             <View style={styles.orderHeader}>
-              <Text style={styles.orderId}>Order #{order.id ? String(order.id).slice(0, 8) : 'N/A'}</Text>
+              <View style={styles.customerInfo}>
+                <Text style={styles.customerName}>{order.customer_name || 'Customer'}</Text>
+                <Text style={styles.orderId}>Order #{order.id ? String(order.id).slice(0, 8) : 'N/A'}</Text>
+              </View>
               <View style={styles.statusBadge}>
                 <Text style={styles.statusText}>{order.status}</Text>
               </View>
@@ -247,9 +250,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  orderId: {
+  customerInfo: {
+    flex: 1,
+  },
+  customerName: {
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 18,
+    color: '#000',
+    marginBottom: 2,
+  },
+  orderId: {
+    fontSize: 12,
+    color: '#888',
+    fontWeight: '500',
   },
   statusBadge: {
     backgroundColor: '#E3F2FD',
